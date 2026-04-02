@@ -27,9 +27,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
-    const redirectMap = { sindico: '/sindico', tecnico: '/tecnico', admin: '/admin' };
-    return <Navigate to={redirectMap[role] || '/login'} replace />;
+  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
+    const redirectMap: Record<string, string> = { 
+      sindico: '/sindico/dashboard', 
+      tecnico: '/tecnico/dashboard', 
+      admin: '/admin/dashboard' 
+    };
+    return <Navigate to={role ? (redirectMap[role] || '/login') : '/login'} replace />;
   }
 
   return <>{children}</>;

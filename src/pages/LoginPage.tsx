@@ -27,7 +27,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error } = await signIn(email, password);
+    const { error, role: fetchedRole } = await signIn(email, password);
     
     if (error) {
       toast.error('Erro ao fazer login', {
@@ -35,10 +35,18 @@ const LoginPage: React.FC = () => {
           ? 'Email ou senha incorretos.' 
           : error.message,
       });
+      setIsLoading(false);
     } else {
       toast.success('Login realizado com sucesso!');
+      const redirectMap: Record<string, string> = { 
+        sindico: '/sindico/dashboard', 
+        tecnico: '/tecnico/dashboard', 
+        admin: '/admin/dashboard' 
+      };
+      if (fetchedRole) {
+        navigate(redirectMap[fetchedRole] || '/');
+      }
     }
-    setIsLoading(false);
   };
 
   return (
