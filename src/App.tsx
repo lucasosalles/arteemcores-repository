@@ -26,15 +26,22 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const RootRedirect = () => {
-  const { session, role, loading } = useAuth();
+  const { session, role, loading, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!loading && session && !role) {
+      signOut();
+    }
+  }, [loading, session, role, signOut]);
+
   if (loading) return null;
   if (!session) return <Navigate to="/login" replace />;
   if (!role) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-2">
-          <p className="text-lg font-semibold text-foreground">Sem permissão de acesso</p>
-          <p className="text-muted-foreground text-sm">Sua conta não possui um perfil de acesso configurado. Contacte o administrador.</p>
+          <p className="text-lg font-semibold text-foreground">Perfil não encontrado</p>
+          <p className="text-muted-foreground text-sm">Contate o administrador.</p>
         </div>
       </div>
     );
