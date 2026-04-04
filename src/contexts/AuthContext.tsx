@@ -38,11 +38,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('user_roles').select('role').eq('user_id', userId).single(),
       ]);
       if (profileRes.data) setProfile(profileRes.data as Profile);
-      if (roleRes.data) setRole(roleRes.data.role as AppRole);
-      else setRole(null);
-    } catch (e) {
-      console.error('Error fetching profile or role:', e);
-      setRole(null);
+      if (roleRes.data) {
+        setRole(roleRes.data.role as AppRole);
+      } else {
+        console.warn('Nenhuma role encontrada para o usuário', userId);
+        setRole(null);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar perfil/role:', err);
     }
   };
 
@@ -54,9 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setLoading(true);
         await fetchProfileAndRole(session.user.id);
-        if (mounted) setLoading(false);
       } else {
         setProfile(null);
         setRole(null);
