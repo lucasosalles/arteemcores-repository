@@ -15,11 +15,24 @@ const SindicoDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: condoData } = await supabase
+      let { data: condoData } = await supabase
         .from('condominios')
         .select('*')
         .eq('sindico_id', profile?.id)
-        .single();
+        .maybeSingle();
+
+      if (!condoData && profile?.id) {
+        const { data: newCondo } = await supabase.from('condominios').insert({
+          name: 'Meu Condomínio',
+          sindico_id: profile.id,
+          address: 'Endereço não informado',
+          plano: 'essencial',
+          limite_atendimentos: 5,
+          atendimentos_mes: 0,
+          ativo: true
+        }).select('*').single();
+        condoData = newCondo;
+      }
 
       if (condoData) {
         setCondo(condoData);

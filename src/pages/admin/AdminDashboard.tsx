@@ -84,7 +84,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Painel Geral — Arte em Cores</h1>
+      <h1 className="text-2xl font-bold text-foreground">Painel Geral — Fino Haus</h1>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

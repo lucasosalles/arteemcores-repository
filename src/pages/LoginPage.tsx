@@ -59,10 +59,10 @@ const LoginPage: React.FC = () => {
         
         <div className="relative z-10 text-center">
           <div className="w-24 h-24 mx-auto mb-6 rounded-full gradient-gold flex items-center justify-center shadow-lg animate-pulse-glow">
-            <Paintbrush className="w-12 h-12 text-secondary-foreground" />
+            <img src="/logo.png" alt="Fino Haus" style={{width: '80px', height: '80px', objectFit: 'contain'}} />
           </div>
           <h1 className="text-4xl lg:text-5xl font-extrabold text-gradient-gold mb-4">
-            ARTE EM CORES
+            FINO HAUS
           </h1>
           <p className="text-lg text-foreground/80 max-w-md leading-relaxed">
             Manutenção previsível.<br />Condomínio organizado.
@@ -105,7 +105,7 @@ const LoginPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={activeTab === 'admin' ? 'admin@arteemcores.com.br' : 'seu@email.com'}
+                  placeholder={activeTab === 'admin' ? 'admin@finohaus.com.br' : 'seu@email.com'}
                   className="pl-10 bg-card border-border text-foreground placeholder:text-muted-foreground"
                   required
                 />
@@ -144,7 +144,7 @@ const LoginPage: React.FC = () => {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            © 2025 Arte em Cores — Sistema de Gestão
+            © 2025 Fino Haus
           </p>
         </div>
       </div>

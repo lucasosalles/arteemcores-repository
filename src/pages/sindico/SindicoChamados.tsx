@@ -61,8 +61,23 @@ const SindicoChamados: React.FC = () => {
 
   const fetchData = async () => {
     if (!profile?.id) return;
-    const { data: condoData } = await supabase
-      .from('condominios').select('*').eq('sindico_id', profile.id).single();
+    let { data: condoData } = await supabase
+      .from('condominios').select('*').eq('sindico_id', profile.id).maybeSingle();
+      
+    if (!condoData) {
+      // Auto-create on first login
+      const { data: newCondo } = await supabase.from('condominios').insert({
+        name: 'Meu Condomínio',
+        sindico_id: profile.id,
+        address: 'Endereço não informado',
+        plano: 'essencial',
+        limite_atendimentos: 5,
+        atendimentos_mes: 0,
+        ativo: true
+      }).select('*').single();
+      condoData = newCondo;
+    }
+
     if (condoData) {
       setCondo(condoData);
       const { data } = await supabase
@@ -74,7 +89,11 @@ const SindicoChamados: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!newTipo || !newLocal || !newDescricao || !condo) return;
+    if (!condo) {
+      toast.error('Nenhum condomínio vinculado. Contate o administrador.');
+      return;
+    }
+    if (!newTipo || !newLocal || !newDescricao) return;
     setSubmitting(true);
     const { data, error } = await supabase.from('chamados').insert({
       condominio_id: condo.id,
