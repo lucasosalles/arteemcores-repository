@@ -20,9 +20,15 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, session, role, loading } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!loading && session && role) {
+      const redirectMap: Record<string, string> = { sindico: '/sindico', tecnico: '/tecnico', admin: '/admin' };
+      navigate(redirectMap[role] || '/', { replace: true });
+    }
+  }, [session, role, loading, navigate]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
