@@ -28,7 +28,12 @@ const LoginPage: React.FC = () => {
       const redirectMap: Record<string, string> = { sindico: '/sindico', tecnico: '/tecnico', admin: '/admin' };
       navigate(redirectMap[role] || '/', { replace: true });
     }
+    if (!loading && session && !role) {
+      toast.error('Perfil não encontrado. Contate o administrador.');
+      setIsLoading(false);
+    }
   }, [session, role, loading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
