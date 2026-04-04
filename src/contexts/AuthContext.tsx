@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => fetchProfileAndRole(session.user.id), 0);
+        await fetchProfileAndRole(session.user.id);
       } else {
         setProfile(null);
         setRole(null);
