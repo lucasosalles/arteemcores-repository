@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,15 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, session, role, loading } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!loading && session && role) {
+      const redirectMap: Record<string, string> = { sindico: '/sindico', tecnico: '/tecnico', admin: '/admin' };
+      navigate(redirectMap[role] || '/', { replace: true });
+    }
+  }, [session, role, loading, navigate]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -35,10 +41,9 @@ const LoginPage: React.FC = () => {
           ? 'Email ou senha incorretos.' 
           : error.message,
       });
-    } else {
-      toast.success('Login realizado com sucesso!');
+      setIsLoading(false);
     }
-    setIsLoading(false);
+    // redirect is handled by AuthContext + RootRedirect
   };
 
   return (
