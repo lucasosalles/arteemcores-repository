@@ -35,10 +35,9 @@ const LoginPage: React.FC = () => {
           ? 'Email ou senha incorretos.' 
           : error.message,
       });
-    } else {
-      toast.success('Login realizado com sucesso!');
+      setIsLoading(false);
     }
-    setIsLoading(false);
+    // redirect is handled by AuthContext + RootRedirect
   };
 
   return (

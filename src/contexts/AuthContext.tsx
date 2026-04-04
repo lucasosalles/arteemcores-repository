@@ -32,12 +32,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const fetchProfileAndRole = async (userId: string) => {
-    const [profileRes, roleRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('user_roles').select('role').eq('user_id', userId).single(),
-    ]);
-    if (profileRes.data) setProfile(profileRes.data as Profile);
-    if (roleRes.data) setRole(roleRes.data.role as AppRole);
+    try {
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+      ]);
+      if (profileRes.data) setProfile(profileRes.data as Profile);
+      if (roleRes.data) {
+        setRole(roleRes.data.role as AppRole);
+      } else {
+        console.warn('Nenhuma role encontrada para o usuário', userId);
+        setRole(null);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar perfil/role:', err);
+    }
   };
 
   useEffect(() => {
