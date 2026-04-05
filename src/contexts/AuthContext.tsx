@@ -90,23 +90,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
+
     if (data.session?.user) {
-      const { data: roleRes, error: roleError } = await supabase
+      // Busca e seta profile + role diretamente no signIn, sem depender do listener
+      await fetchProfileAndRole(data.session.user.id);
+
+      const { data: roleRes } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', data.session.user.id)
         .maybeSingle();
-      if (roleError) {
-        console.error('Role fetch error:', roleError);
-        return { error: null, role: undefined };
-      }
-      if (!roleRes) {
-        console.warn('No role found for user');
-        return { error: null, role: undefined };
-      }
-      setRole(roleRes.role as AppRole);
-      return { error: null, role: roleRes.role as AppRole };
+
+      return { error: null, role: roleRes?.role as AppRole ?? null };
     }
+
     return { error: null };
   };
 
