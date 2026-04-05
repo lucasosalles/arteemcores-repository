@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const [profileRes, roleRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
-        supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
       ]);
       if (profileRes.data) setProfile(profileRes.data as Profile);
       if (roleRes.data) {
@@ -87,13 +87,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
-
+    
     if (data.session?.user) {
-      const { data: roleRes } = await supabase.from('user_roles').select('role').eq('user_id', data.session.user.id).single();
-      if (!roleRes) {
-        await supabase.auth.signOut();
-        return { error: new Error('Perfil não encontrado') };
+      const { data: roleRes, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.session.user.id)
+        .maybeSingle();
+      
+      if (roleError) {
+        console.error('Role fetch error:', roleError);
       }
+      
+      if (!roleRes) {
+        console.warn('No role found, but keeping session');
+        return { error: null, role: undefined };
+      }
+      
       return { error: null, role: roleRes.role as AppRole };
     }
     return { error: null };
