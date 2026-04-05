@@ -24,15 +24,26 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && session && role) {
-      const redirectMap: Record<string, string> = { sindico: '/sindico', tecnico: '/tecnico', admin: '/admin' };
+    // Aguarda o loading terminar antes de qualquer decisão
+    if (loading) return;
+
+    // Sessão ativa + role carregada = redireciona
+    if (session && role) {
+      const redirectMap: Record<string, string> = {
+        sindico: '/sindico',
+        tecnico: '/tecnico',
+        admin: '/admin',
+      };
       navigate(redirectMap[role] || '/', { replace: true });
+      return;
     }
-    if (!loading && session && !role) {
+
+    // Sessão ativa + sem role = erro real (só após loading terminar)
+    if (session && !role && !isLoading) {
       toast.error('Perfil não encontrado. Contate o administrador.');
       setIsLoading(false);
     }
-  }, [session, role, loading, navigate]);
+  }, [session, role, loading, navigate, isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
