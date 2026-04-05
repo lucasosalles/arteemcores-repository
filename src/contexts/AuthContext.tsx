@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) return { error };
 
     if (data.session?.user) {
-      // Busca e seta profile + role diretamente no signIn, sem depender do listener
+      // Chama fetchProfileAndRole diretamente — não depende do onAuthStateChange
       await fetchProfileAndRole(data.session.user.id);
 
       const { data: roleRes } = await supabase
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', data.session.user.id)
         .maybeSingle();
 
-      return { error: null, role: roleRes?.role as AppRole ?? null };
+      return { error: null, role: (roleRes?.role as AppRole) ?? null };
     }
 
     return { error: null };
