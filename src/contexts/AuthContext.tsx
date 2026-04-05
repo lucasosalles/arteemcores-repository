@@ -92,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) return { error };
 
     if (data.session?.user) {
-      // Chama fetchProfileAndRole diretamente — não depende do onAuthStateChange
       await fetchProfileAndRole(data.session.user.id);
 
       const { data: roleRes } = await supabase
