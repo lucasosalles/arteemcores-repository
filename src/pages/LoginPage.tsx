@@ -146,7 +146,7 @@ const LoginPage: React.FC = () => {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            © 2025 Fino Haus
+            © 2026 Fino Haus — Todos os direitos reservados | Sistema de Gestão Predial
           </p>
         </div>
       </div>
