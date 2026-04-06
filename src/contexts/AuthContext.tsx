@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// v3 - signIn calls fetchProfileAndRole directly
+// fix-redirect-v4
 type AppRole = 'sindico' | 'tecnico' | 'admin';
 
 interface Profile {
