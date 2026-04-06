@@ -1,40 +1,43 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+
+type AppRole = 'sindico' | 'tecnico' | 'admin';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ('sindico' | 'tecnico' | 'admin')[];
+  allowedRoles: AppRole[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { session, role, loading } = useAuth();
-  const location = useLocation();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    // Timeout de segurança: se após 5s ainda estiver loading, força a decisão
+    const timer = setTimeout(() => {
+      if (loading) setTimedOut(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Ainda carregando e não atingiu timeout
+  if (loading && !timedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-10 h-10 animate-spin text-secondary mx-auto" />
-          <p className="text-muted-foreground">Carregando...</p>
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Carregando...</p>
         </div>
       </div>
     );
   }
 
-  if (!session) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+  // Sem sessão = vai para login
+  if (!session) return <Navigate to="/login" replace />;
 
-  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
-    const redirectMap: Record<string, string> = { 
-      sindico: '/sindico/dashboard', 
-      tecnico: '/tecnico/dashboard', 
-      admin: '/admin/dashboard' 
-    };
-    return <Navigate to={role ? (redirectMap[role] || '/login') : '/login'} replace />;
-  }
+  // Tem sessão mas role não bate = vai para login
+  if (role && !allowedRoles.includes(role)) return <Navigate to="/login" replace />;
 
   return <>{children}</>;
 };
