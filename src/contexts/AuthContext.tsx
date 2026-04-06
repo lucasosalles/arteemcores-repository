@@ -92,14 +92,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
 
-    if (data.session?.user) {
-      await fetchProfileAndRole(data.session.user.id);
+    console.log('[signIn] auth ok, userId:', data.session?.user?.id);
 
-      const { data: roleRes } = await supabase
+    if (data.session?.user) {
+      console.log('[signIn] chamando fetchProfileAndRole...');
+      await fetchProfileAndRole(data.session.user.id);
+      console.log('[signIn] fetchProfileAndRole concluído');
+
+      const { data: roleRes, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', data.session.user.id)
         .maybeSingle();
+
+      console.log('[signIn] roleRes:', JSON.stringify(roleRes), 'roleError:', JSON.stringify(roleError));
 
       return { error: null, role: (roleRes?.role as AppRole) ?? null };
     }
