@@ -48,18 +48,37 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const { error, role: fetchedRole } = await signIn(email, password);
-    
-    if (error) {
-      toast.error('Erro ao fazer login', {
-        description: error.message === 'Invalid login credentials' 
-          ? 'Email ou senha incorretos.' 
-          : error.message,
-      });
+
+    try {
+      const { error, role: fetchedRole } = await signIn(email, password);
+
+      if (error) {
+        toast.error('Erro ao fazer login', {
+          description: error.message === 'Invalid login credentials'
+            ? 'Email ou senha incorretos.'
+            : error.message,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!fetchedRole) {
+        toast.error('Perfil não encontrado. Contate o administrador.');
+        setIsLoading(false);
+        return;
+      }
+
+      const redirectMap: Record<string, string> = {
+        sindico: '/sindico',
+        tecnico: '/tecnico',
+        admin: '/admin',
+      };
+
+      navigate(redirectMap[fetchedRole] || '/', { replace: true });
+    } catch (err) {
+      console.error('Erro no login:', err);
       setIsLoading(false);
     }
-    // redirect is handled by AuthContext + RootRedirect
   };
 
   return (
