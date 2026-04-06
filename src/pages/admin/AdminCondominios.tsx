@@ -16,9 +16,19 @@ const AdminCondominios: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
-    const { data } = await supabase.from('condominios').select('*, profiles!condominios_sindico_id_fkey(full_name)');
-    setCondos(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('condominios')
+        .select('*, profiles!condominios_sindico_id_fkey(full_name)');
+      if (error) {
+        console.error('Erro ao buscar condomínios:', error);
+      }
+      setCondos(data || []);
+    } catch (err) {
+      console.error('Exceção ao buscar condomínios:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
