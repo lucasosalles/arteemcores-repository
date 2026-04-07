@@ -53,15 +53,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    console.log('[AuthContext] iniciando getSession...');
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      console.log('[AuthContext] getSession retornou:', !!session, error?.message);
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        console.log('[AuthContext] buscando perfil e role...');
         await fetchProfileAndRole(session.user.id);
       }
       if (mounted) {
+        console.log('[AuthContext] setLoading(false)');
         setLoading(false);
         initializedRef.current = true;
       }
@@ -71,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         if (!initializedRef.current && event === 'INITIAL_SESSION') return;
+        console.log('[AuthContext] onAuthStateChange:', event);
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
