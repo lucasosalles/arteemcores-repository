@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const initializedRef = useRef(false);
 
   const fetchProfileAndRole = async (userId: string) => {
     try {
@@ -51,21 +52,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfileAndRole(session.user.id);
+      }
+      if (mounted) {
+        setLoading(false);
+        initializedRef.current = true;
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-
+        if (!initializedRef.current && event === 'INITIAL_SESSION') return;
         setSession(session);
         setUser(session?.user ?? null);
-
         if (session?.user) {
           await fetchProfileAndRole(session.user.id);
         } else {
           setProfile(null);
           setRole(null);
         }
-
-        if (mounted) setLoading(false);
+        if (mounted && !initializedRef.current) {
+          setLoading(false);
+          initializedRef.current = true;
+        }
       }
     );
 
@@ -73,14 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
-
-  // Fallback: se após 3s ainda estiver loading, força false
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
   }, []);
 
   const signIn = async (email: string, password: string) => {
