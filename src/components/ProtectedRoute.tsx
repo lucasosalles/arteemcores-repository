@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -12,37 +12,30 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { session, role, loading } = useAuth();
 
-  // Ainda carregando sessão/role
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        </div>
-      </div>
-    );
+  // Se tem sessão e role, renderiza direto sem esperar loading
+  if (session && role && allowedRoles.includes(role)) {
+    return <>{children}</>;
   }
 
-  // Sem sessão = login
-  if (!session) return <Navigate to="/login" replace />;
-
-  // Tem sessão mas sem role ainda = aguarda (não redireciona)
-  if (!role) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground text-sm">Verificando permissões...</p>
-        </div>
-      </div>
-    );
+  // Sem sessão confirmada e loading terminou = vai para login
+  if (!loading && !session) {
+    return <Navigate to="/login" replace />;
   }
 
-  // Role não permitida = login
-  if (!allowedRoles.includes(role)) return <Navigate to="/login" replace />;
+  // Role não permitida
+  if (!loading && session && role && !allowedRoles.includes(role)) {
+    return <Navigate to="/login" replace />;
+  }
 
-  return <>{children}</>;
+  // Ainda carregando
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center space-y-3">
+        <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-muted-foreground text-sm">Carregando...</p>
+      </div>
+    </div>
+  );
 };
 
 export default ProtectedRoute;
