@@ -34,37 +34,81 @@ const AdminCondominios: React.FC = () => {
   useEffect(() => { fetchData(); }, []);
 
   const handleCreate = async () => {
-    if (!form.name || !form.address || !form.sindicoEmail || !form.sindicoPassword) return;
+    if (!form.name || !form.address || !form.sindicoEmail) return;
     setSubmitting(true);
 
-    // Create sindico account
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.sindicoEmail,
-      password: form.sindicoPassword,
-      options: { data: { full_name: form.sindicoName, role: 'sindico' } },
-    });
+    try {
+      // Busca o usuário pelo email via profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', (await supabase.auth.admin?.listUsers())?.data?.users?.find(u => u.email === form.sindicoEmail)?.id || '')
+        .maybeSingle();
 
-    if (authError) { toast.error(authError.message); setSubmitting(false); return; }
+      // Busca o user_id pelo email na tabela auth via RPC ou via user_roles
+      // Usa uma abordagem alternativa: busca por email na view de usuários
+      const { data: userData } = await supabase
+        .rpc('get_user_id_by_email', { email: form.sindicoEmail })
+        .maybeSingle();
 
-    // Wait briefly for trigger
-    await new Promise(r => setTimeout(r, 1500));
+      let sindicoId = userData;
 
-    const limites: Record<string, number> = { essencial: 5, profissional: 15, premium: 999 };
-    const { error } = await supabase.from('condominios').insert({
-      name: form.name,
-      address: form.address,
-      plano: form.plano as any,
-      sindico_id: authData.user!.id,
-      limite_atendimentos: limites[form.plano],
-    });
+      // Se não encontrou via RPC, tenta criar novo usuário
+      if (!sindicoId && form.sindicoPassword) {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: form.sindicoEmail,
+          password: form.sindicoPassword,
+          options: { data: { full_name: form.sindicoName } },
+        });
 
-    if (error) toast.error(error.message);
-    else {
-      toast.success('Condomínio criado com sucesso!');
-      setShowNew(false);
-      setForm({ name: '', address: '', plano: 'essencial', sindicoEmail: '', sindicoName: '', sindicoPassword: '' });
-      fetchData();
+        if (authError) {
+          toast.error('Erro ao criar síndico: ' + authError.message);
+          setSubmitting(false);
+          return;
+        }
+
+        sindicoId = authData.user?.id;
+        
+        // Aguarda trigger criar o profile
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Cria a role do síndico
+        await supabase.from('user_roles').insert({
+          user_id: sindicoId,
+          role: 'sindico'
+        });
+      }
+
+      if (!sindicoId) {
+        toast.error('Síndico não encontrado. Verifique o email.');
+        setSubmitting(false);
+        return;
+      }
+
+      const limites: Record<string, number> = { essencial: 5, profissional: 15, premium: 999 };
+      
+      const { error } = await supabase.from('condominios').insert({
+        name: form.name,
+        address: form.address,
+        plano: form.plano as any,
+        sindico_id: sindicoId,
+        limite_atendimentos: limites[form.plano],
+        atendimentos_mes: 0,
+        ativo: true,
+      });
+
+      if (error) {
+        toast.error('Erro ao criar condomínio: ' + error.message);
+      } else {
+        toast.success('Condomínio criado com sucesso!');
+        setShowNew(false);
+        setForm({ name: '', address: '', plano: 'essencial', sindicoEmail: '', sindicoName: '', sindicoPassword: '' });
+        fetchData();
+      }
+    } catch (err: any) {
+      toast.error('Erro inesperado: ' + err.message);
     }
+    
     setSubmitting(false);
   };
 
