@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,12 +24,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const clearAuthStorage = () => {
+  Object.keys(localStorage)
+    .filter(k => k.includes('supabase') || k.includes('auth'))
+    .forEach(k => localStorage.removeItem(k));
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const initializedRef = useRef(false);
 
   const fetchProfileAndRole = async (userId: string) => {
     try {
@@ -51,21 +58,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+    const init = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          // Sessão inválida — limpa storage e reseta estado
+          console.warn('Sessão inválida, limpando storage:', error.message);
+          clearAuthStorage();
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setRole(null);
+            setLoading(false);
+            initializedRef.current = true;
+          }
+          return;
+        }
 
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
           await fetchProfileAndRole(session.user.id);
-        } else {
+        }
+
+        if (mounted) {
+          setLoading(false);
+          initializedRef.current = true;
+        }
+      } catch (err) {
+        console.error('Erro na inicialização do auth:', err);
+        clearAuthStorage();
+        if (mounted) {
+          setLoading(false);
+          initializedRef.current = true;
+        }
+      }
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        if (!initializedRef.current && event === 'INITIAL_SESSION') return;
+
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          setSession(session);
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfileAndRole(session.user.id);
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
           setProfile(null);
           setRole(null);
         }
-
-        if (mounted) setLoading(false);
       }
     );
 
@@ -73,14 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
-
-  // Fallback: se após 3s ainda estiver loading, força false
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -113,6 +159,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    clearAuthStorage();
+    setSession(null);
+    setUser(null);
     setProfile(null);
     setRole(null);
   };
