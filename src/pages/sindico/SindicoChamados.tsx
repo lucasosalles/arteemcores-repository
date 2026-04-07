@@ -92,30 +92,29 @@ const SindicoChamados: React.FC = () => {
     let currentCondoId = condo?.id;
 
     if (!currentCondoId) {
-      // Create default condominio as requested
-      const { data: newCondo, error: createError } = await supabase.from('condominios').insert({
-        name: 'Meu Condomínio',
-        address: 'A definir',
-        sindico_id: profile!.id,
-        plano: 'essencial',
-        limite_atendimentos: 5,
-        atendimentos_mes: 0,
-        ativo: true
-      }).select('*').single();
+      // Busca o condomínio diretamente do banco
+      const { data: condoData, error: condoError } = await supabase
+        .from('condominios')
+        .select('id')
+        .eq('sindico_id', profile!.id)
+        .maybeSingle();
 
-      if (createError) {
-        toast.error('Erro ao vincular condomínio. Contate o administrador.');
+      if (condoError || !condoData) {
+        toast.error('Condomínio não encontrado. Contate o administrador.');
         return;
       }
 
-      currentCondoId = newCondo.id;
-      setCondo(newCondo);
-      toast.info('Condomínio criado automaticamente. Atualize os dados no perfil.');
+      currentCondoId = condoData.id;
+      setCondo(condoData);
     }
 
-    if (!newTipo || !newLocal || !newDescricao) return;
+    if (!newTipo || !newLocal || !newDescricao) {
+      toast.error('Preencha todos os campos.');
+      return;
+    }
+
     setSubmitting(true);
-    
+
     const { data, error } = await supabase.from('chamados').insert({
       condominio_id: currentCondoId,
       sindico_id: profile!.id,
