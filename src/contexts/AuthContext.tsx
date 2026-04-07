@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// fix-redirect-v4
 type AppRole = 'sindico' | 'tecnico' | 'admin';
 
 interface Profile {
@@ -31,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const initializedRef = useRef(false);
 
   const fetchProfileAndRole = async (userId: string) => {
     try {
@@ -43,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (roleRes.data) {
         setRole(roleRes.data.role as AppRole);
       } else {
-        console.warn('Nenhuma role encontrada para o usuário', userId);
         setRole(null);
       }
     } catch (err) {
@@ -53,37 +50,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
-    console.log('[AuthContext] iniciando getSession...');
-
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      console.log('[AuthContext] getSession retornou:', !!session, error?.message);
-      if (!mounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        console.log('[AuthContext] buscando perfil e role...');
-        await fetchProfileAndRole(session.user.id);
-      }
-      if (mounted) {
-        console.log('[AuthContext] setLoading(false)');
-        setLoading(false);
-        initializedRef.current = true;
-      }
-    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        if (!initializedRef.current && event === 'INITIAL_SESSION') return;
-        console.log('[AuthContext] onAuthStateChange:', event);
+
         setSession(session);
         setUser(session?.user ?? null);
+
         if (session?.user) {
           await fetchProfileAndRole(session.user.id);
         } else {
           setProfile(null);
           setRole(null);
         }
+
+        if (mounted) setLoading(false);
       }
     );
 
@@ -97,20 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
 
-    console.log('[signIn] auth ok, userId:', data.session?.user?.id);
-
     if (data.session?.user) {
-      console.log('[signIn] chamando fetchProfileAndRole...');
       await fetchProfileAndRole(data.session.user.id);
-      console.log('[signIn] fetchProfileAndRole concluído');
 
-      const { data: roleRes, error: roleError } = await supabase
+      const { data: roleRes } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', data.session.user.id)
         .maybeSingle();
-
-      console.log('[signIn] roleRes:', JSON.stringify(roleRes), 'roleError:', JSON.stringify(roleError));
 
       return { error: null, role: (roleRes?.role as AppRole) ?? null };
     }
