@@ -58,10 +58,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfileAndRole(session.user.id);
+      }
+      if (mounted) {
+        setLoading(false);
+        initializedRef.current = true;
+      }
+    });
+
     const init = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           // Sessão inválida — limpa storage e reseta estado
           console.warn('Sessão inválida, limpando storage:', error.message);
@@ -78,9 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (!mounted) return;
+
         setSession(session);
         setUser(session?.user ?? null);
-
         if (session?.user) {
           await fetchProfileAndRole(session.user.id);
         }
@@ -120,6 +133,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(null);
           setRole(null);
         }
+
+        if (mounted) setLoading(false);
       }
     );
 
