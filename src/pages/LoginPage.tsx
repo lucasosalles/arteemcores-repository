@@ -90,10 +90,7 @@ const LoginPage: React.FC = () => {
         <div className="absolute bottom-20 right-10 w-48 h-48 rounded-full bg-accent/10 blur-3xl" />
         
         <div className="relative z-10 text-center">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full gradient-gold flex items-center justify-center shadow-lg animate-pulse-glow">
-            <img src="/logo.png" alt="Fino Haus" style={{width: '80px', height: '80px', objectFit: 'contain'}} />
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-gradient-gold mb-4">
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-gradient-gold mb-4 mt-8">
             FINO HAUS
           </h1>
           <p className="text-lg text-foreground/80 max-w-md leading-relaxed">
@@ -176,7 +173,7 @@ const LoginPage: React.FC = () => {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            © 2026 Fino Haus — Todos os direitos reservados | Sistema de Gestão Predial
+            © 2026 Fino Haus — Todos os direitos reservados
           </p>
         </div>
       </div>
