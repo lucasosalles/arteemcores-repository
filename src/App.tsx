@@ -18,6 +18,7 @@ import TecnicoHistorico from "@/pages/tecnico/TecnicoHistorico";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminChamados from "@/pages/admin/AdminChamados";
 import AdminTecnicos from "@/pages/admin/AdminTecnicos";
+import AdminArquitetos from "@/pages/admin/AdminArquitetos";
 import AdminCondominios from "@/pages/admin/AdminCondominios";
 import AdminFinanceiro from "@/pages/admin/AdminFinanceiro";
 import AdminRelatorios from "@/pages/admin/AdminRelatorios";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminDashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/chamados" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminChamados /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/tecnicos" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminTecnicos /></AppLayout></ProtectedRoute>} />
+            <Route path="/admin/arquitetos" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminArquitetos /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/condominios" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminCondominios /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/financeiro" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminFinanceiro /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/relatorios" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminRelatorios /></AppLayout></ProtectedRoute>} />

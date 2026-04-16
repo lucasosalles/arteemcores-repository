@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { abrirChamado } from '@/lib/chamadoFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -130,30 +131,24 @@ const SindicoChamados: React.FC = () => {
     }
 
     setSubmitting(true);
-    const { data, error } = await supabase.from('chamados').insert({
-      titulo: newTitulo,
-      tipo: newTipo as any,
-      local: newLocal,
-      descricao: newDescricao,
-      prioridade: newPrioridade as any,
-      status: 'aberto' as any,
-      condominio_id: currentCondoId,
-      sindico_id: profile!.id,
-      criado_por: profile!.id,
-      data_abertura: new Date().toISOString(),
-    }).select().single();
+    const result = await abrirChamado(
+      {
+        titulo: newTitulo,
+        tipo: newTipo,
+        local: newLocal,
+        descricao: newDescricao,
+        prioridade: newPrioridade,
+        condominioId: currentCondoId,
+        criadoPor: profile!.id,
+        sindicoId: profile!.id,
+      },
+      'sindico',
+    );
 
-    if (error) {
-      toast.error('Erro ao criar chamado', { description: error.message });
+    if (!result.ok) {
+      toast.error('Erro ao criar chamado', { description: result.erro });
     } else {
-      await supabase.from('historico_chamados').insert({
-        chamado_id: data.id,
-        usuario_id: profile!.id,
-        status_anterior: '',
-        status_novo: 'aberto',
-        observacao: 'Chamado aberto pelo síndico',
-      });
-      setNewNumero(data.numero);
+      setNewNumero(result.data.numero);
       setSuccess(true);
       fetchData();
     }

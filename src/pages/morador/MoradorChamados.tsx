@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { abrirChamado } from '@/lib/chamadoFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -87,30 +88,24 @@ const MoradorChamados: React.FC = () => {
       return;
     }
 
-    const { data, error } = await supabase.from('chamados').insert({
-      titulo,
-      tipo: tipo as any,
-      local,
-      descricao: `${local} — ${descricao}`,
-      prioridade: prioridade as any,
-      status: 'aberto' as any,
-      criado_por: profile!.id,
-      sindico_id: profile!.id,
-      condominio_id: condoData.id,
-      data_abertura: new Date().toISOString(),
-    }).select().single();
+    const result = await abrirChamado(
+      {
+        titulo,
+        tipo,
+        local,
+        descricao: `${local} — ${descricao}`,
+        prioridade,
+        condominioId: condoData.id,
+        criadoPor: profile!.id,
+        sindicoId: profile!.id,
+      },
+      'morador',
+    );
 
-    if (error) {
-      toast.error('Erro ao criar chamado', { description: error.message });
+    if (!result.ok) {
+      toast.error('Erro ao criar chamado', { description: result.erro });
     } else {
-      await supabase.from('historico_chamados').insert({
-        chamado_id: data.id,
-        usuario_id: profile!.id,
-        status_anterior: '',
-        status_novo: 'aberto',
-        observacao: 'Chamado aberto pelo morador',
-      });
-      setNovoNumero(data.numero);
+      setNovoNumero(result.data.numero);
       setSuccess(true);
       fetchChamados();
     }

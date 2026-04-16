@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { mudarStatusChamado, statusDisponiveis, type ChamadoStatus } from '@/lib/chamadoFlow';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -89,29 +90,21 @@ const ArquitetoDashboard: React.FC = () => {
       return;
     }
     setSubmitting(true);
-    const statusAnterior = selected.status;
 
-    const updateData: any = { status: novoStatus };
-    if (novoStatus === 'concluido') {
-      updateData.concluded_at = new Date().toISOString();
-      updateData.data_conclusao = new Date().toISOString();
-      updateData.observacoes_tecnico = observacao.trim();
-    }
+    const result = await mudarStatusChamado({
+      chamadoId: selected.id,
+      statusAtual: selected.status,
+      statusNovo: novoStatus as ChamadoStatus,
+      usuarioId: profile!.id,
+      perfil: 'arquiteto',
+      observacao: observacao.trim(),
+    });
 
-    const { error } = await supabase.from('chamados').update(updateData).eq('id', selected.id);
-    if (error) {
-      toast.error('Erro ao atualizar chamado', { description: error.message });
+    if (!result.ok) {
+      toast.error('Erro ao atualizar chamado', { description: result.erro });
       setSubmitting(false);
       return;
     }
-
-    await supabase.from('historico_chamados').insert({
-      chamado_id: selected.id,
-      usuario_id: profile!.id,
-      status_anterior: statusAnterior,
-      status_novo: novoStatus,
-      observacao: observacao.trim(),
-    });
 
     toast.success('Status atualizado!');
     setSelected(null);
@@ -201,8 +194,11 @@ const ArquitetoDashboard: React.FC = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
+                  {statusDisponiveis('arquiteto', selected?.status ?? '').map(s => (
+                    <SelectItem key={s} value={s}>
+                      {s === 'em_andamento' ? 'Em Andamento' : s === 'concluido' ? 'Concluído' : s}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

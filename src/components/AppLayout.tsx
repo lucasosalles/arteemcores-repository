@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, LogOut,
   ClipboardList, Star, BarChart3, Building2, CreditCard,
-  Wrench, History, Bell
+  Wrench, History, Bell, HardHat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -40,12 +40,13 @@ const prestadorNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
-  { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Chamados', path: '/admin/chamados', icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Técnicos', path: '/admin/tecnicos', icon: <Wrench className="w-5 h-5" /> },
-  { label: 'Condomínios', path: '/admin/condominios', icon: <Building2 className="w-5 h-5" /> },
-  { label: 'Financeiro', path: '/admin/financeiro', icon: <CreditCard className="w-5 h-5" /> },
-  { label: 'Relatórios', path: '/admin/relatorios', icon: <BarChart3 className="w-5 h-5" /> },
+  { label: 'Dashboard',   path: '/admin',              icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Chamados',    path: '/admin/chamados',     icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Técnicos',    path: '/admin/tecnicos',     icon: <Wrench className="w-5 h-5" /> },
+  { label: 'Arquitetos',  path: '/admin/arquitetos',   icon: <HardHat className="w-5 h-5" /> },
+  { label: 'Condomínios', path: '/admin/condominios',  icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Financeiro',  path: '/admin/financeiro',   icon: <CreditCard className="w-5 h-5" /> },
+  { label: 'Relatórios',  path: '/admin/relatorios',   icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
 interface AppLayoutProps {

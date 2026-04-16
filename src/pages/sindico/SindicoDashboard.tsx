@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { atribuirChamado as executarAtribuicao } from '@/lib/chamadoFlow';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -114,26 +115,19 @@ const SindicoDashboard: React.FC = () => {
   const handleAtribuir = async () => {
     if (!executorSelecionado || !atribuirChamado) return;
     setAtribuindo(true);
-    const statusAnterior = atribuirChamado.status;
 
-    const { error } = await supabase.from('chamados').update({
-      atribuido_para: executorSelecionado,
-      status: 'atribuido' as any,
-    }).eq('id', atribuirChamado.id);
+    const result = await executarAtribuicao({
+      chamadoId: atribuirChamado.id,
+      statusAtual: atribuirChamado.status,
+      atribuidoPara: executorSelecionado,
+      sindicoId: profile!.id,
+    });
 
-    if (error) {
-      toast.error('Erro ao atribuir chamado', { description: error.message });
+    if (!result.ok) {
+      toast.error('Erro ao atribuir chamado', { description: result.erro });
       setAtribuindo(false);
       return;
     }
-
-    await supabase.from('historico_chamados').insert({
-      chamado_id: atribuirChamado.id,
-      usuario_id: profile!.id,
-      status_anterior: statusAnterior,
-      status_novo: 'atribuido',
-      observacao: 'Chamado atribuído pelo síndico',
-    });
 
     toast.success('Chamado atribuído com sucesso!');
     setAtribuirChamado(null);
