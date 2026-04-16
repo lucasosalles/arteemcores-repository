@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Paintbrush, LayoutDashboard, FileText, Settings, LogOut, 
-  ClipboardList, Star, BarChart3, Users, Building2, CreditCard,
+import {
+  LayoutDashboard, LogOut,
+  ClipboardList, Star, BarChart3, Building2, CreditCard,
   Wrench, History, Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         {/* Logo */}
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <span className="font-extrabold text-gradient-gold text-lg">FINO HAUS</span>
+            <span className="font-extrabold text-gradient-gold text-lg">Fino Haus</span>
           </div>
         </div>
 
@@ -104,7 +104,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-gradient-gold text-sm">FINO HAUS</span>
+          <span className="font-extrabold text-gradient-gold text-sm">Fino Haus</span>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="text-muted-foreground">

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Paintbrush, Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type RoleTab = 'sindico' | 'tecnico' | 'admin';
@@ -91,7 +91,7 @@ const LoginPage: React.FC = () => {
         
         <div className="relative z-10 text-center">
           <h1 className="text-4xl lg:text-5xl font-extrabold text-gradient-gold mb-4 mt-8">
-            FINO HAUS
+            Fino Haus
           </h1>
           <p className="text-lg text-foreground/80 max-w-md leading-relaxed">
             Manutenção previsível.<br />Condomínio organizado.
