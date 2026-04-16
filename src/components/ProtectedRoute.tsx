@@ -22,9 +22,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" replace />;
   }
 
-  // Role não permitida
+  // Role não permitida — redireciona para o dashboard do próprio perfil
   if (!loading && session && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/login" replace />;
+    const roleHome: Record<string, string> = {
+      sindico: '/sindico/dashboard',
+      tecnico: '/tecnico/dashboard',
+      admin: '/admin/dashboard',
+    };
+    return <Navigate to={roleHome[role] ?? '/login'} replace />;
   }
 
   // Ainda carregando

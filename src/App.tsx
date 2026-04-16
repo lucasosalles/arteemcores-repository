@@ -37,20 +37,20 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
 
             {/* Síndico routes */}
-            <Route path="/sindico" element={<Navigate to="/sindico/dashboard" replace />} />
+            <Route path="/sindico" element={<ProtectedRoute allowedRoles={['sindico']}><Navigate to="/sindico/dashboard" replace /></ProtectedRoute>} />
             <Route path="/sindico/dashboard" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoDashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/chamados" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoChamados /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/plano" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoPlano /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/relatorios" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoRelatorios /></AppLayout></ProtectedRoute>} />
 
             {/* Técnico routes */}
-            <Route path="/tecnico" element={<Navigate to="/tecnico/dashboard" replace />} />
+            <Route path="/tecnico" element={<ProtectedRoute allowedRoles={['tecnico']}><Navigate to="/tecnico/dashboard" replace /></ProtectedRoute>} />
             <Route path="/tecnico/dashboard" element={<ProtectedRoute allowedRoles={['tecnico']}><AppLayout><TecnicoDashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/tecnico/disponiveis" element={<ProtectedRoute allowedRoles={['tecnico']}><AppLayout><TecnicoDisponiveis /></AppLayout></ProtectedRoute>} />
             <Route path="/tecnico/historico" element={<ProtectedRoute allowedRoles={['tecnico']}><AppLayout><TecnicoHistorico /></AppLayout></ProtectedRoute>} />
 
             {/* Admin routes */}
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminDashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/chamados" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminChamados /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/tecnicos" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminTecnicos /></AppLayout></ProtectedRoute>} />
