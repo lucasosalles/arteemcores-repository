@@ -2,98 +2,168 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Clock, CheckCircle2, AlertTriangle, Plus, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { ClipboardList, Clock, CheckCircle2, TrendingUp, Loader2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const tipoLabel: Record<string, string> = {
+  reparo: '🔧 Reparo', arquitetura: '🏛️ Arquitetura', limpeza: '🧹 Limpeza',
+  seguranca: '🔒 Segurança', outro: '➕ Outro',
+  pintura_interna: '🖌️ Pintura Interna', pintura_fachada: '🏗️ Pintura Fachada',
+  esquadria: '🪟 Esquadria', teto: '🛖 Teto', urgencia: '⚡ Urgência', outros: '➕ Outros',
+};
+
+const statusBadge = (status: string) => {
+  const map: Record<string, { label: string; cls: string }> = {
+    aberto:       { label: 'Aberto',       cls: 'bg-warning/20 text-warning' },
+    atribuido:    { label: 'Atribuído',    cls: 'bg-blue-500/20 text-blue-400' },
+    em_andamento: { label: 'Em Andamento', cls: 'bg-orange-500/20 text-orange-400' },
+    concluido:    { label: 'Concluído',    cls: 'bg-success/20 text-success' },
+    cancelado:    { label: 'Cancelado',    cls: 'bg-muted text-muted-foreground' },
+    aguardando:   { label: 'Aguardando',   cls: 'bg-warning/20 text-warning' },
+    aceito:       { label: 'Aceito',       cls: 'bg-blue-500/20 text-blue-400' },
+    a_caminho:    { label: 'A Caminho',    cls: 'bg-blue-500/20 text-blue-400' },
+  };
+  const s = map[status] || { label: status, cls: 'bg-muted text-muted-foreground' };
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.cls}`}>{s.label}</span>;
+};
+
+const prioridadeBadge = (prioridade: string) => {
+  const map: Record<string, { label: string; cls: string }> = {
+    baixa:   { label: 'Baixa',   cls: 'bg-muted text-muted-foreground' },
+    media:   { label: 'Média',   cls: 'bg-warning/20 text-warning' },
+    alta:    { label: 'Alta',    cls: 'bg-destructive/20 text-destructive' },
+    normal:  { label: 'Normal',  cls: 'bg-muted text-muted-foreground' },
+    urgente: { label: 'Urgente', cls: 'bg-destructive/20 text-destructive' },
+  };
+  const p = map[prioridade] || { label: prioridade, cls: 'bg-muted text-muted-foreground' };
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${p.cls}`}>{p.label}</span>;
+};
 
 const SindicoDashboard: React.FC = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ total: 0, aguardando: 0, em_andamento: 0, concluidos: 0 });
   const [condo, setCondo] = useState<any>(null);
-  const [recentChamados, setRecentChamados] = useState<any[]>([]);
+  const [chamados, setChamados] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('todos');
+  const [filterTipo, setFilterTipo] = useState('todos');
+  const [filterPrioridade, setFilterPrioridade] = useState('todos');
+  const [atribuirChamado, setAtribuirChamado] = useState<any>(null);
+  const [executores, setExecutores] = useState<any[]>([]);
+  const [executorSelecionado, setExecutorSelecionado] = useState('');
+  const [atribuindo, setAtribuindo] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      let { data: condoData } = await supabase
-        .from('condominios')
+  useEffect(() => { fetchData(); }, [profile?.id]);
+
+  const fetchData = async () => {
+    if (!profile?.id) return;
+    let { data: condoData } = await supabase
+      .from('condominios').select('*').eq('sindico_id', profile.id).maybeSingle();
+
+    if (!condoData) {
+      const { data: newCondo } = await supabase.from('condominios').insert({
+        name: 'Meu Condomínio', sindico_id: profile.id,
+        address: 'Endereço não informado', plano: 'essencial',
+        limite_atendimentos: 5, atendimentos_mes: 0, ativo: true,
+      }).select('*').single();
+      condoData = newCondo;
+    }
+
+    if (condoData) {
+      setCondo(condoData);
+      const { data } = await supabase
+        .from('chamados')
         .select('*')
-        .eq('sindico_id', profile?.id)
-        .maybeSingle();
-
-      if (!condoData && profile?.id) {
-        const { data: newCondo } = await supabase.from('condominios').insert({
-          name: 'Meu Condomínio',
-          sindico_id: profile.id,
-          address: 'Endereço não informado',
-          plano: 'essencial',
-          limite_atendimentos: 5,
-          atendimentos_mes: 0,
-          ativo: true
-        }).select('*').single();
-        condoData = newCondo;
-      }
-
-      if (condoData) {
-        setCondo(condoData);
-        const { data: chamados } = await supabase
-          .from('chamados')
-          .select('*')
-          .eq('condominio_id', condoData.id)
-          .order('created_at', { ascending: false });
-
-        if (chamados) {
-          const now = new Date();
-          const thisMonth = chamados.filter(c => new Date(c.created_at).getMonth() === now.getMonth());
-          setStats({
-            total: thisMonth.length,
-            aguardando: thisMonth.filter(c => c.status === 'aguardando').length,
-            em_andamento: thisMonth.filter(c => ['aceito', 'a_caminho', 'em_andamento'].includes(c.status)).length,
-            concluidos: thisMonth.filter(c => c.status === 'concluido').length,
-          });
-          setRecentChamados(chamados.slice(0, 5));
-        }
-      }
-      setLoading(false);
-    };
-    if (profile?.id) fetchData();
-  }, [profile?.id]);
-
-  const statusBadge = (status: string) => {
-    const map: Record<string, { label: string; cls: string }> = {
-      aguardando: { label: 'Aguardando', cls: 'bg-warning/20 text-warning' },
-      aceito: { label: 'Aceito', cls: 'bg-info/20 text-info' },
-      a_caminho: { label: 'A Caminho', cls: 'bg-info/20 text-info' },
-      em_andamento: { label: 'Em Andamento', cls: 'bg-accent/20 text-accent' },
-      concluido: { label: 'Concluído', cls: 'bg-success/20 text-success' },
-      cancelado: { label: 'Cancelado', cls: 'bg-destructive/20 text-destructive' },
-    };
-    const s = map[status] || { label: status, cls: 'bg-muted text-muted-foreground' };
-    return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.cls}`}>{s.label}</span>;
+        .eq('condominio_id', condoData.id)
+        .order('created_at', { ascending: false });
+      setChamados(data || []);
+    }
+    setLoading(false);
   };
 
-  const tipoLabel: Record<string, string> = {
-    pintura_interna: '🖌️ Pintura Interna',
-    pintura_fachada: '🏗️ Pintura Fachada',
-    esquadria: '🪟 Esquadria',
-    teto: '🛖 Teto',
-    urgencia: '⚡ Urgência',
-    outros: '➕ Outros',
+  const fetchExecutores = async () => {
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('user_id, role')
+      .in('role', ['arquiteto', 'prestador'] as any);
+
+    if (roles && roles.length > 0) {
+      const ids = roles.map(r => r.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles').select('id, full_name').in('id', ids);
+      setExecutores(
+        (profiles || []).map(p => ({
+          ...p,
+          perfil: roles.find(r => r.user_id === p.id)?.role,
+        }))
+      );
+    } else {
+      setExecutores([]);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 lg:p-8 space-y-6">
-        {[1,2,3].map(i => (
-          <div key={i} className="h-24 bg-card rounded-xl animate-pulse" />
-        ))}
-      </div>
-    );
-  }
+  const openAtribuir = async (chamado: any) => {
+    setAtribuirChamado(chamado);
+    setExecutorSelecionado('');
+    await fetchExecutores();
+  };
+
+  const handleAtribuir = async () => {
+    if (!executorSelecionado || !atribuirChamado) return;
+    setAtribuindo(true);
+    const statusAnterior = atribuirChamado.status;
+
+    const { error } = await supabase.from('chamados').update({
+      atribuido_para: executorSelecionado,
+      status: 'atribuido' as any,
+    }).eq('id', atribuirChamado.id);
+
+    if (error) {
+      toast.error('Erro ao atribuir chamado', { description: error.message });
+      setAtribuindo(false);
+      return;
+    }
+
+    await supabase.from('historico_chamados').insert({
+      chamado_id: atribuirChamado.id,
+      usuario_id: profile!.id,
+      status_anterior: statusAnterior,
+      status_novo: 'atribuido',
+      observacao: 'Chamado atribuído pelo síndico',
+    });
+
+    toast.success('Chamado atribuído com sucesso!');
+    setAtribuirChamado(null);
+    setExecutorSelecionado('');
+    fetchData();
+    setAtribuindo(false);
+  };
+
+  const stats = {
+    total:        chamados.length,
+    abertos:      chamados.filter(c => ['aberto', 'aguardando'].includes(c.status)).length,
+    em_andamento: chamados.filter(c => ['atribuido', 'aceito', 'a_caminho', 'em_andamento'].includes(c.status)).length,
+    concluidos:   chamados.filter(c => c.status === 'concluido').length,
+  };
+
+  const filtered = chamados.filter(c => {
+    if (filterStatus !== 'todos' && c.status !== filterStatus) return false;
+    if (filterTipo !== 'todos' && c.tipo !== filterTipo) return false;
+    if (filterPrioridade !== 'todos' && c.prioridade !== filterPrioridade) return false;
+    return true;
+  });
+
+  if (loading) return (
+    <div className="p-6 lg:p-8 space-y-6">
+      {[1, 2, 3].map(i => <div key={i} className="h-24 bg-card rounded-xl animate-pulse" />)}
+    </div>
+  );
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
@@ -102,19 +172,18 @@ const SindicoDashboard: React.FC = () => {
           <p className="text-muted-foreground">{condo?.name || 'Seu condomínio'}</p>
         </div>
         <Button variant="golden" onClick={() => navigate('/sindico/chamados?novo=true')}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Chamado
+          <Plus className="w-4 h-4 mr-2" /> Novo Chamado
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total do Mês', value: stats.total, icon: <ClipboardList className="w-5 h-5" />, color: 'text-secondary' },
-          { label: 'Aguardando', value: stats.aguardando, icon: <Clock className="w-5 h-5" />, color: 'text-warning' },
-          { label: 'Em Atendimento', value: stats.em_andamento, icon: <TrendingUp className="w-5 h-5" />, color: 'text-info' },
-          { label: 'Concluídos', value: stats.concluidos, icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-success' },
-        ].map((stat) => (
+          { label: 'Total',        value: stats.total,        icon: <ClipboardList className="w-5 h-5" />, color: 'text-secondary' },
+          { label: 'Abertos',      value: stats.abertos,      icon: <Clock className="w-5 h-5" />,         color: 'text-warning' },
+          { label: 'Em Andamento', value: stats.em_andamento, icon: <TrendingUp className="w-5 h-5" />,    color: 'text-orange-400' },
+          { label: 'Concluídos',   value: stats.concluidos,   icon: <CheckCircle2 className="w-5 h-5" />,  color: 'text-success' },
+        ].map(stat => (
           <div key={stat.label} className="glass-card p-5">
             <div className={`${stat.color} mb-2`}>{stat.icon}</div>
             <p className="text-2xl font-bold text-foreground">{stat.value}</p>
@@ -123,64 +192,129 @@ const SindicoDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Plan status */}
-      {condo && (
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h3 className="text-lg font-bold text-foreground">Seu Plano</h3>
-              <span className="px-3 py-1 rounded-full text-xs font-bold gradient-gold text-secondary-foreground capitalize">
-                {condo.plano}
-              </span>
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-44 bg-card">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="aberto">Aberto</SelectItem>
+            <SelectItem value="atribuido">Atribuído</SelectItem>
+            <SelectItem value="em_andamento">Em Andamento</SelectItem>
+            <SelectItem value="concluido">Concluído</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterTipo} onValueChange={setFilterTipo}>
+          <SelectTrigger className="w-44 bg-card">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
+            <SelectItem value="reparo">Reparo</SelectItem>
+            <SelectItem value="arquitetura">Arquitetura</SelectItem>
+            <SelectItem value="limpeza">Limpeza</SelectItem>
+            <SelectItem value="seguranca">Segurança</SelectItem>
+            <SelectItem value="outro">Outro</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterPrioridade} onValueChange={setFilterPrioridade}>
+          <SelectTrigger className="w-44 bg-card">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as prioridades</SelectItem>
+            <SelectItem value="baixa">Baixa</SelectItem>
+            <SelectItem value="media">Média</SelectItem>
+            <SelectItem value="alta">Alta</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Lista */}
+      {filtered.length === 0 ? (
+        <div className="glass-card p-12 text-center text-muted-foreground">
+          Nenhum chamado encontrado.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(c => (
+            <div key={c.id} className="glass-card p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-lg shrink-0">{tipoLabel[c.tipo]?.split(' ')[0] || '📋'}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {c.titulo || c.local}{' '}
+                      <span className="text-muted-foreground font-normal">
+                        #{String(c.numero).padStart(4, '0')}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {tipoLabel[c.tipo]?.split(' ').slice(1).join(' ')}
+                      {' · '}{new Date(c.data_abertura || c.created_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {prioridadeBadge(c.prioridade)}
+                  {statusBadge(c.status)}
+                </div>
+              </div>
+              {['aberto', 'aguardando'].includes(c.status) && (
+                <Button variant="outline" size="sm" className="w-full text-secondary border-secondary/30"
+                  onClick={() => openAtribuir(c)}>
+                  Atribuir
+                </Button>
+              )}
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('/sindico/plano')}>
-              Ver Plano
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Atendimentos este mês</span>
-              <span className="text-foreground font-semibold">{condo.atendimentos_mes}/{condo.limite_atendimentos}</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full gradient-gold rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((condo.atendimentos_mes / condo.limite_atendimentos) * 100, 100)}%` }}
-              />
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Recent chamados */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-foreground">Chamados Recentes</h3>
-          <Button variant="ghost" size="sm" className="text-secondary" onClick={() => navigate('/sindico/chamados')}>
-            Ver todos
-          </Button>
-        </div>
-        {recentChamados.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">Nenhum chamado ainda. Crie o primeiro!</p>
-        ) : (
-          <div className="space-y-3">
-            {recentChamados.map((chamado) => (
-              <div key={chamado.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{tipoLabel[chamado.tipo]?.split(' ')[0] || '📋'}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      #{String(chamado.numero).padStart(4, '0')} — {chamado.local}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{tipoLabel[chamado.tipo]?.split(' ').slice(1).join(' ')}</p>
-                  </div>
-                </div>
-                {statusBadge(chamado.status)}
-              </div>
-            ))}
+      {/* Modal de atribuição */}
+      <Dialog open={!!atribuirChamado} onOpenChange={(open) => { if (!open) setAtribuirChamado(null); }}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Atribuir Chamado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Chamado:{' '}
+              <span className="text-foreground font-medium">
+                {atribuirChamado?.titulo || atribuirChamado?.local}
+              </span>
+            </p>
+            {executores.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum arquiteto ou prestador cadastrado no sistema.
+              </p>
+            ) : (
+              <Select value={executorSelecionado} onValueChange={setExecutorSelecionado}>
+                <SelectTrigger className="bg-muted">
+                  <SelectValue placeholder="Selecione o executor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {executores.map(e => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.full_name}{' '}
+                      <span className="text-muted-foreground capitalize">({e.perfil})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="golden" className="w-full" onClick={handleAtribuir}
+              disabled={atribuindo || !executorSelecionado}>
+              {atribuindo ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Atribuição'}
+            </Button>
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

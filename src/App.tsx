@@ -21,6 +21,9 @@ import AdminTecnicos from "@/pages/admin/AdminTecnicos";
 import AdminCondominios from "@/pages/admin/AdminCondominios";
 import AdminFinanceiro from "@/pages/admin/AdminFinanceiro";
 import AdminRelatorios from "@/pages/admin/AdminRelatorios";
+import MoradorChamados from "@/pages/morador/MoradorChamados";
+import ArquitetoDashboard from "@/pages/arquiteto/ArquitetoDashboard";
+import PrestadorDashboard from "@/pages/prestador/PrestadorDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +60,18 @@ const App = () => (
             <Route path="/admin/condominios" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminCondominios /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/financeiro" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminFinanceiro /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/relatorios" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminRelatorios /></AppLayout></ProtectedRoute>} />
+
+            {/* Morador routes */}
+            <Route path="/morador" element={<ProtectedRoute allowedRoles={['morador']}><Navigate to="/morador/chamados" replace /></ProtectedRoute>} />
+            <Route path="/morador/chamados" element={<ProtectedRoute allowedRoles={['morador']}><AppLayout><MoradorChamados /></AppLayout></ProtectedRoute>} />
+
+            {/* Arquiteto routes */}
+            <Route path="/arquiteto" element={<ProtectedRoute allowedRoles={['arquiteto']}><Navigate to="/arquiteto/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/arquiteto/dashboard" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoDashboard /></AppLayout></ProtectedRoute>} />
+
+            {/* Prestador routes */}
+            <Route path="/prestador" element={<ProtectedRoute allowedRoles={['prestador']}><Navigate to="/prestador/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/prestador/dashboard" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorDashboard /></AppLayout></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

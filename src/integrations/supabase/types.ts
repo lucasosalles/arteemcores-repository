@@ -16,12 +16,17 @@ export type Database = {
     Tables: {
       chamados: {
         Row: {
+          atribuido_para: string | null
           concluded_at: string | null
           condominio_id: string
           created_at: string
+          criado_por: string | null
+          data_abertura: string | null
+          data_conclusao: string | null
           descricao: string
           foto_antes_url: string | null
           foto_depois_url: string | null
+          foto_url: string | null
           id: string
           local: string
           numero: number
@@ -31,15 +36,22 @@ export type Database = {
           status: Database["public"]["Enums"]["chamado_status"]
           tecnico_id: string | null
           tipo: Database["public"]["Enums"]["chamado_tipo"]
+          titulo: string | null
+          unidade_id: string | null
           updated_at: string
         }
         Insert: {
+          atribuido_para?: string | null
           concluded_at?: string | null
           condominio_id: string
           created_at?: string
+          criado_por?: string | null
+          data_abertura?: string | null
+          data_conclusao?: string | null
           descricao: string
           foto_antes_url?: string | null
           foto_depois_url?: string | null
+          foto_url?: string | null
           id?: string
           local: string
           numero?: number
@@ -49,15 +61,22 @@ export type Database = {
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_id?: string | null
           tipo: Database["public"]["Enums"]["chamado_tipo"]
+          titulo?: string | null
+          unidade_id?: string | null
           updated_at?: string
         }
         Update: {
+          atribuido_para?: string | null
           concluded_at?: string | null
           condominio_id?: string
           created_at?: string
+          criado_por?: string | null
+          data_abertura?: string | null
+          data_conclusao?: string | null
           descricao?: string
           foto_antes_url?: string | null
           foto_depois_url?: string | null
+          foto_url?: string | null
           id?: string
           local?: string
           numero?: number
@@ -67,14 +86,30 @@ export type Database = {
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_id?: string | null
           tipo?: Database["public"]["Enums"]["chamado_tipo"]
+          titulo?: string | null
+          unidade_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "chamados_atribuido_para_fkey"
+            columns: ["atribuido_para"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chamados_condominio_id_fkey"
             columns: ["condominio_id"]
             isOneToOne: false
             referencedRelation: "condominios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamados_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -89,6 +124,93 @@ export type Database = {
             columns: ["tecnico_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamados_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_chamados: {
+        Row: {
+          chamado_id: string
+          data_mudanca: string
+          id: string
+          observacao: string | null
+          status_anterior: string | null
+          status_novo: string
+          usuario_id: string
+        }
+        Insert: {
+          chamado_id: string
+          data_mudanca?: string
+          id?: string
+          observacao?: string | null
+          status_anterior?: string | null
+          status_novo: string
+          usuario_id: string
+        }
+        Update: {
+          chamado_id?: string
+          data_mudanca?: string
+          id?: string
+          observacao?: string | null
+          status_anterior?: string | null
+          status_novo?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_chamados_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_chamados_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unidades: {
+        Row: {
+          bloco: string | null
+          condominio_id: string | null
+          created_at: string
+          id: string
+          numero: string
+          tipo: string | null
+        }
+        Insert: {
+          bloco?: string | null
+          condominio_id?: string | null
+          created_at?: string
+          id?: string
+          numero: string
+          tipo?: string | null
+        }
+        Update: {
+          bloco?: string | null
+          condominio_id?: string | null
+          created_at?: string
+          id?: string
+          numero?: string
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unidades_condominio_id_fkey"
+            columns: ["condominio_id"]
+            isOneToOne: false
+            referencedRelation: "condominios"
             referencedColumns: ["id"]
           },
         ]
@@ -294,8 +416,8 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "sindico" | "tecnico" | "admin"
-      chamado_prioridade: "normal" | "alta" | "urgente"
+      app_role: "sindico" | "tecnico" | "admin" | "morador" | "arquiteto" | "prestador"
+      chamado_prioridade: "normal" | "alta" | "urgente" | "baixa" | "media"
       chamado_status:
         | "aguardando"
         | "aceito"
@@ -303,6 +425,8 @@ export type Database = {
         | "em_andamento"
         | "concluido"
         | "cancelado"
+        | "aberto"
+        | "atribuido"
       chamado_tipo:
         | "pintura_interna"
         | "pintura_fachada"
@@ -310,6 +434,11 @@ export type Database = {
         | "teto"
         | "urgencia"
         | "outros"
+        | "reparo"
+        | "arquitetura"
+        | "limpeza"
+        | "seguranca"
+        | "outro"
       pagamento_status: "pago" | "pendente" | "atrasado"
       plano_tipo: "essencial" | "profissional" | "premium"
     }
@@ -439,8 +568,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["sindico", "tecnico", "admin"],
-      chamado_prioridade: ["normal", "alta", "urgente"],
+      app_role: ["sindico", "tecnico", "admin", "morador", "arquiteto", "prestador"],
+      chamado_prioridade: ["normal", "alta", "urgente", "baixa", "media"],
       chamado_status: [
         "aguardando",
         "aceito",
@@ -448,6 +577,8 @@ export const Constants = {
         "em_andamento",
         "concluido",
         "cancelado",
+        "aberto",
+        "atribuido",
       ],
       chamado_tipo: [
         "pintura_interna",
@@ -456,6 +587,11 @@ export const Constants = {
         "teto",
         "urgencia",
         "outros",
+        "reparo",
+        "arquitetura",
+        "limpeza",
+        "seguranca",
+        "outro",
       ],
       pagamento_status: ["pago", "pendente", "atrasado"],
       plano_tipo: ["essencial", "profissional", "premium"],

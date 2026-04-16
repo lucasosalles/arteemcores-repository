@@ -19,9 +19,12 @@ const LoginPage: React.FC = () => {
 
     if (session && role) {
       const redirectMap: Record<string, string> = {
-        sindico: '/sindico',
-        tecnico: '/tecnico',
-        admin: '/admin',
+        admin:     '/admin',
+        sindico:   '/sindico',
+        tecnico:   '/tecnico',
+        morador:   '/morador/chamados',
+        arquiteto: '/arquiteto/dashboard',
+        prestador: '/prestador/dashboard',
       };
       navigate(redirectMap[role] || '/', { replace: true });
       return;
@@ -57,9 +60,12 @@ const LoginPage: React.FC = () => {
       }
 
       const redirectMap: Record<string, string> = {
-        sindico: '/sindico',
-        tecnico: '/tecnico',
-        admin: '/admin',
+        admin:     '/admin',
+        sindico:   '/sindico',
+        tecnico:   '/tecnico',
+        morador:   '/morador/chamados',
+        arquiteto: '/arquiteto/dashboard',
+        prestador: '/prestador/dashboard',
       };
 
       navigate(redirectMap[fetchedRole] || '/', { replace: true });

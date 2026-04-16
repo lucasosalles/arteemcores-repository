@@ -27,6 +27,18 @@ const tecnicoNav: NavItem[] = [
   { label: 'Histórico', path: '/tecnico/historico', icon: <History className="w-5 h-5" /> },
 ];
 
+const moradorNav: NavItem[] = [
+  { label: 'Meus Chamados', path: '/morador/chamados', icon: <ClipboardList className="w-5 h-5" /> },
+];
+
+const arquitetoNav: NavItem[] = [
+  { label: 'Dashboard', path: '/arquiteto/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+];
+
+const prestadorNav: NavItem[] = [
+  { label: 'Dashboard', path: '/prestador/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+];
+
 const adminNav: NavItem[] = [
   { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Chamados', path: '/admin/chamados', icon: <ClipboardList className="w-5 h-5" /> },
@@ -44,7 +56,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { role, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const navItems = role === 'sindico' ? sindicoNav : role === 'tecnico' ? tecnicoNav : adminNav;
+  const navItems =
+    role === 'sindico'   ? sindicoNav  :
+    role === 'tecnico'   ? tecnicoNav  :
+    role === 'morador'   ? moradorNav  :
+    role === 'arquiteto' ? arquitetoNav :
+    role === 'prestador' ? prestadorNav :
+    adminNav;
 
   const handleSignOut = async () => {
     await signOut();
