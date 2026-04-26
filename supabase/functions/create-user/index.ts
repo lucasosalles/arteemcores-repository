@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, phone, role } = await req.json();
+    const { email, password, full_name, phone, role, condominio_id } = await req.json();
 
     if (!email || !password || !full_name || !role) {
       return new Response(JSON.stringify({ error: 'Campos obrigatórios: email, password, full_name, role' }), {
@@ -76,6 +76,14 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Se for morador e tiver condominio_id, atualiza o profile
+    if (condominio_id && data.user) {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ condominio_id })
+        .eq('id', data.user.id);
     }
 
     return new Response(JSON.stringify({ user: data.user }), {

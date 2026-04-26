@@ -8,11 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { Plus, Loader2, HardHat, Wrench, ClipboardList, CheckCircle2, Clock } from 'lucide-react';
 
-type PerfilExecutor = 'arquiteto' | 'prestador';
+type PerfilExecutor = 'arquiteto';
 
 const perfilLabel: Record<PerfilExecutor, string> = {
   arquiteto: 'Arquiteto',
-  prestador: 'Prestador',
 };
 
 const statusBadge = (status: string) => {
@@ -35,6 +34,7 @@ const AdminArquitetos: React.FC = () => {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '',
     role: 'arquiteto' as PerfilExecutor,
+
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,7 +42,7 @@ const AdminArquitetos: React.FC = () => {
     const { data: roles } = await supabase
       .from('user_roles')
       .select('user_id, role')
-      .in('role', ['arquiteto', 'prestador'] as any);
+      .eq('role', 'arquiteto' as any);
 
     if (!roles || roles.length === 0) {
       setExecutores([]);
@@ -113,7 +113,7 @@ const AdminArquitetos: React.FC = () => {
     <div className="p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Arquitetos e Prestadores</h1>
+          <h1 className="text-2xl font-bold text-foreground">Arquitetos</h1>
           <p className="text-sm text-muted-foreground">Profissionais que executam os chamados</p>
         </div>
         <Button variant="golden" onClick={() => setShowNew(true)}>
@@ -123,7 +123,7 @@ const AdminArquitetos: React.FC = () => {
 
       {executores.length === 0 ? (
         <div className="glass-card p-12 text-center text-muted-foreground">
-          Nenhum arquiteto ou prestador cadastrado.
+          Nenhum arquiteto cadastrado.
         </div>
       ) : (
         <div className="space-y-4">
@@ -154,7 +154,7 @@ const AdminArquitetos: React.FC = () => {
                         }`}>
                           {e.perfil === 'arquiteto'
                             ? <><HardHat className="w-3 h-3 inline mr-1" />Arquiteto</>
-                            : <><Wrench className="w-3 h-3 inline mr-1" />Prestador</>
+                            : <><HardHat className="w-3 h-3 inline mr-1" />Arquiteto</>
                           }
                         </span>
                       </div>
@@ -218,7 +218,7 @@ const AdminArquitetos: React.FC = () => {
       <Dialog open={showNew} onOpenChange={open => { if (!open && !submitting) setShowNew(false); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Novo Arquiteto / Prestador</DialogTitle>
+            <DialogTitle className="text-foreground">Novo Arquiteto</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -232,7 +232,6 @@ const AdminArquitetos: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="arquiteto">Arquiteto</SelectItem>
-                  <SelectItem value="prestador">Prestador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

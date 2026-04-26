@@ -35,10 +35,6 @@ const arquitetoNav: NavItem[] = [
   { label: 'Dashboard', path: '/arquiteto/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
 ];
 
-const prestadorNav: NavItem[] = [
-  { label: 'Dashboard', path: '/prestador/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-];
-
 const adminNav: NavItem[] = [
   { label: 'Dashboard',   path: '/admin',              icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Chamados',    path: '/admin/chamados',     icon: <ClipboardList className="w-5 h-5" /> },
@@ -62,7 +58,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     role === 'tecnico'   ? tecnicoNav  :
     role === 'morador'   ? moradorNav  :
     role === 'arquiteto' ? arquitetoNav :
-    role === 'prestador' ? prestadorNav :
     adminNav;
 
   const handleSignOut = async () => {
