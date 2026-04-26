@@ -38,55 +38,49 @@ const AdminCondominios: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Busca o usuário pelo email via profiles
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', (await supabase.auth.admin?.listUsers())?.data?.users?.find(u => u.email === form.sindicoEmail)?.id || '')
-        .maybeSingle();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Sessão expirada. Faça login novamente.');
+        setSubmitting(false);
+        return;
+      }
 
-      // Busca o user_id pelo email na tabela auth via RPC ou via user_roles
-      // Usa uma abordagem alternativa: busca por email na view de usuários
-      const { data: userData } = await supabase
-        .rpc('get_user_id_by_email', { email: form.sindicoEmail })
-        .maybeSingle();
+      // Tenta encontrar síndico existente pelo email
+      let sindicoId: string | null = null;
+      const { data: existingId } = await supabase
+        .rpc('get_user_id_by_email', { p_email: form.sindicoEmail });
+      sindicoId = existingId ?? null;
 
-      let sindicoId = userData;
-
-      // Se não encontrou via RPC, tenta criar novo usuário
-      if (!sindicoId && form.sindicoPassword) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: form.sindicoEmail,
-          password: form.sindicoPassword,
-          options: { data: { full_name: form.sindicoName } },
-        });
-
-        if (authError) {
-          toast.error('Erro ao criar síndico: ' + authError.message);
+      // Se não existe, cria via Edge Function
+      if (!sindicoId) {
+        if (!form.sindicoPassword) {
+          toast.error('Informe uma senha para o síndico.');
           setSubmitting(false);
           return;
         }
 
-        sindicoId = authData.user?.id;
-        
-        // Aguarda trigger criar o profile
-        await new Promise(r => setTimeout(r, 1500));
-
-        // Cria a role do síndico
-        await supabase.from('user_roles').insert({
-          user_id: sindicoId,
-          role: 'sindico'
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: { email: form.sindicoEmail, password: form.sindicoPassword, full_name: form.sindicoName || form.sindicoEmail, phone: '', role: 'sindico' },
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
+
+        if (error || data?.error) {
+          toast.error('Erro ao criar síndico', { description: error?.message || data?.error });
+          setSubmitting(false);
+          return;
+        }
+
+        sindicoId = data.user?.id;
       }
 
       if (!sindicoId) {
-        toast.error('Síndico não encontrado. Verifique o email.');
+        toast.error('Não foi possível obter o ID do síndico.');
         setSubmitting(false);
         return;
       }
 
       const limites: Record<string, number> = { essencial: 5, profissional: 15, premium: 999 };
-      
+
       const { error } = await supabase.from('condominios').insert({
         name: form.name,
         address: form.address,
@@ -108,7 +102,7 @@ const AdminCondominios: React.FC = () => {
     } catch (err: any) {
       toast.error('Erro inesperado: ' + err.message);
     }
-    
+
     setSubmitting(false);
   };
 

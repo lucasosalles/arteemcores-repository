@@ -38,20 +38,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
 
-  const fetchProfileAndRole = async (userId: string) => {
+  const fetchProfileAndRole = async (userId: string): Promise<AppRole | null> => {
     try {
       const [profileRes, roleRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
       ]);
       if (profileRes.data) setProfile(profileRes.data as Profile);
-      if (roleRes.data) {
-        setRole(roleRes.data.role as AppRole);
-      } else {
-        setRole(null);
-      }
+      const fetchedRole = (roleRes.data?.role as AppRole) ?? null;
+      setRole(fetchedRole);
+      return fetchedRole;
     } catch (err) {
       console.error('Erro ao buscar perfil/role:', err);
+      return null;
     }
   };
 
@@ -146,15 +145,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) return { error };
 
     if (data.session?.user) {
-      await fetchProfileAndRole(data.session.user.id);
-
-      const { data: roleRes } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.session.user.id)
-        .maybeSingle();
-
-      return { error: null, role: (roleRes?.role as AppRole) ?? null };
+      const role = await fetchProfileAndRole(data.session.user.id);
+      return { error: null, role };
     }
 
     return { error: null };
