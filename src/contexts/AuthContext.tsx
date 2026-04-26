@@ -60,7 +60,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const init = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('session_timeout')), 5000)
+          ),
+        ]);
+
+        const { data: { session }, error } = sessionResult;
 
         if (error) {
           clearAuthStorage();
@@ -91,6 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Erro na inicialização do auth:', err);
         clearAuthStorage();
         if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setRole(null);
           setLoading(false);
           initializedRef.current = true;
         }

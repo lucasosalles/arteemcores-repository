@@ -29,13 +29,28 @@ const AdminTecnicos: React.FC = () => {
   const handleCreate = async () => {
     if (!form.name || !form.email || !form.password) return;
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: { data: { full_name: form.name, phone: form.phone, role: 'tecnico' } },
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Sessão expirada. Faça login novamente.');
+      setSubmitting(false);
+      return;
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: { email: form.email, password: form.password, full_name: form.name, phone: form.phone, role: 'tecnico' },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
-    if (error) toast.error(error.message);
-    else {
+
+    // Garante que a sessão do admin não foi alterada
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (currentSession?.user?.id !== session.user.id) {
+      await supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+    }
+
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error);
+    } else {
       toast.success('Técnico criado com sucesso!');
       setShowNew(false);
       setForm({ name: '', email: '', phone: '', password: '' });
