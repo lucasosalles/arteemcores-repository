@@ -58,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
 
     const forceReset = () => {
+      supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       clearAuthStorage();
       if (mounted) {
         setSession(null);
@@ -162,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     clearAuthStorage();
     setSession(null);
     setUser(null);
