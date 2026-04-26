@@ -26,8 +26,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const clearAuthStorage = () => {
   Object.keys(localStorage)
-    .filter(k => k.includes('supabase') || k.includes('auth'))
+    .filter(k => k.includes('supabase') || k.includes('auth') || k.startsWith('sb-'))
     .forEach(k => localStorage.removeItem(k));
+};
+
+const clearIfExpiredSession = () => {
+  try {
+    const key = Object.keys(localStorage).find(
+      k => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    if (!key) return;
+    const stored = JSON.parse(localStorage.getItem(key) || 'null');
+    if (stored?.expires_at && Date.now() / 1000 > stored.expires_at) {
+      clearAuthStorage();
+    }
+  } catch {
+    clearAuthStorage();
+  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -71,6 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const init = async () => {
+      // Limpa token expirado antes de qualquer requisição de rede
+      clearIfExpiredSession();
+
       // Timeout de segurança: sessão corrompida/expirada pode travar getSession()
       const safetyTimer = setTimeout(() => {
         if (!initializedRef.current) forceReset();
