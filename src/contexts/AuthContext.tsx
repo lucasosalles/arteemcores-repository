@@ -118,6 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         if (!initializedRef.current && event === 'INITIAL_SESSION') return;
 
+        if (event === 'TOKEN_REFRESH_FAILED' || (event === 'SIGNED_OUT' && !session)) {
+          forceReset();
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
 
