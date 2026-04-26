@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type AppRole = 'sindico' | 'tecnico' | 'admin';
+type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'prestador' | 'tecnico';
 
 interface Profile {
   id: string;
@@ -58,7 +58,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    const forceReset = () => {
+      clearAuthStorage();
+      if (mounted) {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setRole(null);
+        setLoading(false);
+        initializedRef.current = true;
+      }
+    };
+
     const init = async () => {
+      // Timeout de segurança: sessão corrompida/expirada pode travar getSession()
+      const safetyTimer = setTimeout(() => {
+        if (!initializedRef.current) forceReset();
+      }, 6000);
+
       try {
         const sessionResult = await Promise.race([
           supabase.auth.getSession(),
@@ -70,15 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = sessionResult;
 
         if (error) {
-          clearAuthStorage();
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setRole(null);
-            setLoading(false);
-            initializedRef.current = true;
-          }
+          forceReset();
           return;
         }
 
@@ -96,15 +105,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err) {
         console.error('Erro na inicialização do auth:', err);
-        clearAuthStorage();
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setRole(null);
-          setLoading(false);
-          initializedRef.current = true;
-        }
+        forceReset();
+      } finally {
+        clearTimeout(safetyTimer);
       }
     };
 

@@ -20,6 +20,8 @@ const AdminTecnicos: React.FC = () => {
       const ids = roles.map(r => r.user_id);
       const { data: profiles } = await supabase.from('profiles').select('*').in('id', ids);
       setTecnicos(profiles || []);
+    } else {
+      setTecnicos([]);
     }
     setLoading(false);
   };
@@ -42,19 +44,13 @@ const AdminTecnicos: React.FC = () => {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
 
-    // Garante que a sessão do admin não foi alterada
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    if (currentSession?.user?.id !== session.user.id) {
-      await supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
-    }
-
     if (error || data?.error) {
-      toast.error(error?.message || data?.error);
+      toast.error('Erro ao criar técnico', { description: error?.message || data?.error });
     } else {
       toast.success('Técnico criado com sucesso!');
       setShowNew(false);
       setForm({ name: '', email: '', phone: '', password: '' });
-      setTimeout(fetchData, 1000);
+      setTimeout(fetchData, 800);
     }
     setSubmitting(false);
   };
@@ -94,15 +90,15 @@ const AdminTecnicos: React.FC = () => {
         </div>
       )}
 
-      <Dialog open={showNew} onOpenChange={setShowNew}>
+      <Dialog open={showNew} onOpenChange={open => { if (!open && !submitting) setShowNew(false); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader><DialogTitle className="text-foreground">Novo Técnico</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-foreground/80">Nome completo</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="bg-muted" /></div>
-            <div><Label className="text-foreground/80">Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="bg-muted" /></div>
-            <div><Label className="text-foreground/80">Telefone</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="bg-muted" /></div>
-            <div><Label className="text-foreground/80">Senha temporária</Label><Input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="bg-muted" /></div>
-            <Button variant="golden" className="w-full" onClick={handleCreate} disabled={submitting}>
+            <div><Label className="text-foreground/80">Nome completo</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="bg-muted mt-1" /></div>
+            <div><Label className="text-foreground/80">Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="bg-muted mt-1" /></div>
+            <div><Label className="text-foreground/80">Telefone</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="bg-muted mt-1" /></div>
+            <div><Label className="text-foreground/80">Senha temporária</Label><Input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="bg-muted mt-1" /></div>
+            <Button variant="golden" className="w-full" onClick={handleCreate} disabled={submitting || !form.name || !form.email || !form.password}>
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar Técnico'}
             </Button>
           </div>

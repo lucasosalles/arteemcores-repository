@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Paintbrush, LayoutDashboard, FileText, Settings, LogOut, 
-  ClipboardList, Star, BarChart3, Users, Building2, CreditCard,
-  Wrench, History, Bell
+import {
+  LayoutDashboard, LogOut,
+  ClipboardList, Star, BarChart3, Building2, CreditCard,
+  Wrench, History, Bell, HardHat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,13 +27,26 @@ const tecnicoNav: NavItem[] = [
   { label: 'Histórico', path: '/tecnico/historico', icon: <History className="w-5 h-5" /> },
 ];
 
+const moradorNav: NavItem[] = [
+  { label: 'Meus Chamados', path: '/morador/chamados', icon: <ClipboardList className="w-5 h-5" /> },
+];
+
+const arquitetoNav: NavItem[] = [
+  { label: 'Dashboard', path: '/arquiteto/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+];
+
+const prestadorNav: NavItem[] = [
+  { label: 'Dashboard', path: '/prestador/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+];
+
 const adminNav: NavItem[] = [
-  { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Chamados', path: '/admin/chamados', icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Técnicos', path: '/admin/tecnicos', icon: <Wrench className="w-5 h-5" /> },
-  { label: 'Condomínios', path: '/admin/condominios', icon: <Building2 className="w-5 h-5" /> },
-  { label: 'Financeiro', path: '/admin/financeiro', icon: <CreditCard className="w-5 h-5" /> },
-  { label: 'Relatórios', path: '/admin/relatorios', icon: <BarChart3 className="w-5 h-5" /> },
+  { label: 'Dashboard',   path: '/admin',              icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Chamados',    path: '/admin/chamados',     icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Técnicos',    path: '/admin/tecnicos',     icon: <Wrench className="w-5 h-5" /> },
+  { label: 'Arquitetos',  path: '/admin/arquitetos',   icon: <HardHat className="w-5 h-5" /> },
+  { label: 'Condomínios', path: '/admin/condominios',  icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Financeiro',  path: '/admin/financeiro',   icon: <CreditCard className="w-5 h-5" /> },
+  { label: 'Relatórios',  path: '/admin/relatorios',   icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
 interface AppLayoutProps {
@@ -44,7 +57,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { role, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const navItems = role === 'sindico' ? sindicoNav : role === 'tecnico' ? tecnicoNav : adminNav;
+  const navItems =
+    role === 'sindico'   ? sindicoNav  :
+    role === 'tecnico'   ? tecnicoNav  :
+    role === 'morador'   ? moradorNav  :
+    role === 'arquiteto' ? arquitetoNav :
+    role === 'prestador' ? prestadorNav :
+    adminNav;
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,7 +77,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         {/* Logo */}
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <span className="font-extrabold text-gradient-gold text-lg">FINO HAUS</span>
+            <span className="font-extrabold text-gradient-gold text-lg">Fino Haus</span>
           </div>
         </div>
 
@@ -104,7 +123,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-gradient-gold text-sm">FINO HAUS</span>
+          <span className="font-extrabold text-gradient-gold text-sm">Fino Haus</span>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="text-muted-foreground">

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-type AppRole = 'sindico' | 'tecnico' | 'admin';
+type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'prestador' | 'tecnico';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,9 +22,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" replace />;
   }
 
-  // Role não permitida
+  // Role não permitida — redireciona para o dashboard do próprio perfil
   if (!loading && session && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/login" replace />;
+    const roleHome: Record<string, string> = {
+      admin: '/admin/dashboard',
+      sindico: '/sindico/dashboard',
+      tecnico: '/tecnico/dashboard',
+      morador: '/morador/chamados',
+      arquiteto: '/arquiteto/dashboard',
+      prestador: '/prestador/dashboard',
+    };
+    return <Navigate to={roleHome[role] ?? '/login'} replace />;
   }
 
   // Ainda carregando
