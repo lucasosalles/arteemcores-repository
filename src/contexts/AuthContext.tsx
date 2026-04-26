@@ -73,13 +73,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Timeout de segurança: sessão corrompida/expirada pode travar getSession()
       const safetyTimer = setTimeout(() => {
         if (!initializedRef.current) forceReset();
-      }, 6000);
+      }, 4000);
 
       try {
         const sessionResult = await Promise.race([
           supabase.auth.getSession(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('session_timeout')), 5000)
+            setTimeout(() => reject(new Error('session_timeout')), 3000)
           ),
         ]);
 
