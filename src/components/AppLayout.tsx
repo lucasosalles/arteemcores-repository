@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, LogOut,
   ClipboardList, Star, BarChart3, Building2, CreditCard,
-  Wrench, History, Bell, Users, FileText, CalendarCheck
+  Wrench, History, Users, FileText, CalendarCheck
 } from 'lucide-react';
+import NotificationBell from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
 
 interface NavItem {
@@ -108,8 +109,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* User section */}
+        {/* Notifications + User section */}
         <div className="p-4 border-t border-border">
+          <div className="flex items-center justify-between mb-3">
+            <NotificationBell />
+          </div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground">
               {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
@@ -131,10 +135,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <div className="flex items-center gap-2">
           <span className="font-extrabold text-gradient-gold text-sm">Fino Haus</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <Bell className="w-5 h-5" />
-          </Button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
           <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={handleSignOut}>
             <LogOut className="w-5 h-5" />
           </Button>
