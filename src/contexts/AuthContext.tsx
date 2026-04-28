@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'prestador' | 'tecnico';
+type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'tecnico';
 
 interface Profile {
   id: string;
@@ -26,8 +26,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const clearAuthStorage = () => {
   Object.keys(localStorage)
-    .filter(k => k.includes('supabase') || k.includes('auth'))
+    .filter(k => k.includes('supabase') || k.includes('auth') || k.startsWith('sb-'))
     .forEach(k => localStorage.removeItem(k));
+};
+
+const clearIfExpiredSession = () => {
+  try {
+    const key = Object.keys(localStorage).find(
+      k => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    if (!key) return;
+    const stored = JSON.parse(localStorage.getItem(key) || 'null');
+    if (stored?.expires_at && Date.now() / 1000 > stored.expires_at) {
+      clearAuthStorage();
+    }
+  } catch {
+    clearAuthStorage();
+  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -38,20 +53,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
 
-  const fetchProfileAndRole = async (userId: string) => {
+  const fetchProfileAndRole = async (userId: string): Promise<AppRole | null> => {
     try {
       const [profileRes, roleRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
       ]);
       if (profileRes.data) setProfile(profileRes.data as Profile);
-      if (roleRes.data) {
-        setRole(roleRes.data.role as AppRole);
-      } else {
-        setRole(null);
-      }
+      const fetchedRole = (roleRes.data?.role as AppRole) ?? null;
+      setRole(fetchedRole);
+      return fetchedRole;
     } catch (err) {
       console.error('Erro ao buscar perfil/role:', err);
+      return null;
     }
   };
 
@@ -59,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
 
     const forceReset = () => {
+      supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       clearAuthStorage();
       if (mounted) {
         setSession(null);
@@ -71,13 +86,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const init = async () => {
+      // Limpa token expirado antes de qualquer requisição de rede
+      clearIfExpiredSession();
+
       // Timeout de segurança: sessão corrompida/expirada pode travar getSession()
       const safetyTimer = setTimeout(() => {
         if (!initializedRef.current) forceReset();
-      }, 6000);
+      }, 4000);
 
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('session_timeout')), 3000)
+          ),
+        ]);
+
+        const { data: { session }, error } = sessionResult;
 
         if (error) {
           forceReset();
@@ -111,6 +136,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         if (!initializedRef.current && event === 'INITIAL_SESSION') return;
 
+        if (event === 'TOKEN_REFRESH_FAILED') {
+          forceReset();
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -139,15 +169,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) return { error };
 
     if (data.session?.user) {
-      await fetchProfileAndRole(data.session.user.id);
-
-      const { data: roleRes } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.session.user.id)
-        .maybeSingle();
-
-      return { error: null, role: (roleRes?.role as AppRole) ?? null };
+      const role = await fetchProfileAndRole(data.session.user.id);
+      return { error: null, role };
     }
 
     return { error: null };
@@ -163,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     clearAuthStorage();
     setSession(null);
     setUser(null);

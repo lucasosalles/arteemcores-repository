@@ -32,37 +32,26 @@ const AdminTecnicos: React.FC = () => {
     if (!form.name || !form.email || !form.password) return;
     setSubmitting(true);
 
-    const { data: { session: adminSession } } = await supabase.auth.getSession();
-
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: { data: { full_name: form.name, phone: form.phone, role: 'tecnico' } },
-    });
-
-    if (error) {
-      toast.error('Erro ao criar técnico', { description: error.message });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Sessão expirada. Faça login novamente.');
       setSubmitting(false);
       return;
     }
 
-    // Restaura sessão do admin caso o signUp tenha substituído
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    if (adminSession && currentSession?.user?.id !== adminSession.user.id) {
-      await supabase.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-    }
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: { email: form.email, password: form.password, full_name: form.name, phone: form.phone, role: 'tecnico' },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
 
-    if (data?.user && adminSession) {
-      await supabase.from('user_roles').insert({ user_id: data.user.id, role: 'tecnico' as any });
+    if (error || data?.error) {
+      toast.error('Erro ao criar técnico', { description: error?.message || data?.error });
+    } else {
+      toast.success('Técnico criado com sucesso!');
+      setShowNew(false);
+      setForm({ name: '', email: '', phone: '', password: '' });
+      setTimeout(fetchData, 800);
     }
-
-    toast.success('Técnico criado com sucesso!');
-    setShowNew(false);
-    setForm({ name: '', email: '', phone: '', password: '' });
-    setTimeout(fetchData, 800);
     setSubmitting(false);
   };
 

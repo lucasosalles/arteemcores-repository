@@ -24,7 +24,6 @@ const LoginPage: React.FC = () => {
         tecnico:   '/tecnico',
         morador:   '/morador/chamados',
         arquiteto: '/arquiteto/dashboard',
-        prestador: '/prestador/dashboard',
       };
       navigate(redirectMap[role] || '/', { replace: true });
       return;
@@ -65,7 +64,6 @@ const LoginPage: React.FC = () => {
         tecnico:   '/tecnico',
         morador:   '/morador/chamados',
         arquiteto: '/arquiteto/dashboard',
-        prestador: '/prestador/dashboard',
       };
 
       navigate(redirectMap[fetchedRole] || '/', { replace: true });

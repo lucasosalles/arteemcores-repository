@@ -8,11 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { Plus, Loader2, HardHat, Wrench, ClipboardList, CheckCircle2, Clock } from 'lucide-react';
 
-type PerfilExecutor = 'arquiteto' | 'prestador';
+type PerfilExecutor = 'arquiteto';
 
 const perfilLabel: Record<PerfilExecutor, string> = {
   arquiteto: 'Arquiteto',
-  prestador: 'Prestador',
 };
 
 const statusBadge = (status: string) => {
@@ -35,6 +34,7 @@ const AdminArquitetos: React.FC = () => {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '',
     role: 'arquiteto' as PerfilExecutor,
+
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,7 +42,7 @@ const AdminArquitetos: React.FC = () => {
     const { data: roles } = await supabase
       .from('user_roles')
       .select('user_id, role')
-      .in('role', ['arquiteto', 'prestador'] as any);
+      .eq('role', 'arquiteto' as any);
 
     if (!roles || roles.length === 0) {
       setExecutores([]);
@@ -82,46 +82,26 @@ const AdminArquitetos: React.FC = () => {
     if (!form.name || !form.email || !form.password) return;
     setSubmitting(true);
 
-    const { data: { session: adminSession } } = await supabase.auth.getSession();
-
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: { full_name: form.name, phone: form.phone, role: form.role },
-      },
-    });
-
-    if (error) {
-      toast.error('Erro ao criar perfil', { description: error.message });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Sessão expirada. Faça login novamente.');
       setSubmitting(false);
       return;
     }
 
-    // Restaura sessão do admin caso o signUp tenha substituído
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    if (adminSession && currentSession?.user?.id !== adminSession.user.id) {
-      await supabase.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-    }
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: { email: form.email, password: form.password, full_name: form.name, phone: form.phone, role: form.role },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
 
-    // Insere manualmente em user_roles caso o trigger não tenha disparado
-    if (data?.user) {
-      const { error: roleError } = await supabase.from('user_roles').insert({
-        user_id: data.user.id,
-        role: form.role as any,
-      });
-      if (roleError && !roleError.message.includes('duplicate')) {
-        console.warn('[AdminArquitetos] role insert:', roleError.message);
-      }
+    if (error || data?.error) {
+      toast.error('Erro ao criar perfil', { description: error?.message || data?.error });
+    } else {
+      toast.success(`${perfilLabel[form.role]} criado com sucesso!`);
+      setShowNew(false);
+      setForm({ name: '', email: '', phone: '', password: '', role: 'arquiteto' });
+      setTimeout(fetchData, 800);
     }
-
-    toast.success(`${perfilLabel[form.role]} criado com sucesso!`);
-    setShowNew(false);
-    setForm({ name: '', email: '', phone: '', password: '', role: 'arquiteto' });
-    setTimeout(fetchData, 800);
     setSubmitting(false);
   };
 
@@ -133,7 +113,7 @@ const AdminArquitetos: React.FC = () => {
     <div className="p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Arquitetos e Prestadores</h1>
+          <h1 className="text-2xl font-bold text-foreground">Arquitetos</h1>
           <p className="text-sm text-muted-foreground">Profissionais que executam os chamados</p>
         </div>
         <Button variant="golden" onClick={() => setShowNew(true)}>
@@ -143,7 +123,7 @@ const AdminArquitetos: React.FC = () => {
 
       {executores.length === 0 ? (
         <div className="glass-card p-12 text-center text-muted-foreground">
-          Nenhum arquiteto ou prestador cadastrado.
+          Nenhum arquiteto cadastrado.
         </div>
       ) : (
         <div className="space-y-4">
@@ -174,7 +154,7 @@ const AdminArquitetos: React.FC = () => {
                         }`}>
                           {e.perfil === 'arquiteto'
                             ? <><HardHat className="w-3 h-3 inline mr-1" />Arquiteto</>
-                            : <><Wrench className="w-3 h-3 inline mr-1" />Prestador</>
+                            : <><HardHat className="w-3 h-3 inline mr-1" />Arquiteto</>
                           }
                         </span>
                       </div>
@@ -238,7 +218,7 @@ const AdminArquitetos: React.FC = () => {
       <Dialog open={showNew} onOpenChange={open => { if (!open && !submitting) setShowNew(false); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Novo Arquiteto / Prestador</DialogTitle>
+            <DialogTitle className="text-foreground">Novo Arquiteto</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -252,7 +232,6 @@ const AdminArquitetos: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="arquiteto">Arquiteto</SelectItem>
-                  <SelectItem value="prestador">Prestador</SelectItem>
                 </SelectContent>
               </Select>
             </div>
