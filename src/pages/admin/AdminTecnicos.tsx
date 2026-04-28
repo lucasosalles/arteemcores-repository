@@ -15,7 +15,7 @@ const AdminTecnicos: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
-    const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'tecnico');
+    const { data: roles } = await supabase.from('user_roles').select('user_id').in('role', ['prestador', 'tecnico']);
     if (roles && roles.length > 0) {
       const ids = roles.map(r => r.user_id);
       const { data: profiles } = await supabase.from('profiles').select('*').in('id', ids);
@@ -40,7 +40,7 @@ const AdminTecnicos: React.FC = () => {
     }
 
     const { data, error } = await supabase.functions.invoke('create-user', {
-      body: { email: form.email, password: form.password, full_name: form.name, phone: form.phone, role: 'tecnico' },
+      body: { email: form.email, password: form.password, full_name: form.name, phone: form.phone, role: 'prestador' },
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
 

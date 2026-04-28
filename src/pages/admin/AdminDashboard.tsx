@@ -17,7 +17,7 @@ const AdminDashboard: React.FC = () => {
       const [chamadosRes, pagRes, tecRes] = await Promise.all([
         supabase.from('chamados').select('*, condominios(name), profiles!chamados_tecnico_id_fkey(full_name)').order('created_at', { ascending: false }),
         supabase.from('pagamentos').select('*'),
-        supabase.from('user_roles').select('user_id').eq('role', 'tecnico'),
+        supabase.from('user_roles').select('user_id').in('role', ['prestador', 'tecnico']),
       ]);
 
       const chamados = chamadosRes.data || [];

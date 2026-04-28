@@ -18,7 +18,7 @@ const AdminChamados: React.FC = () => {
   const fetchData = async () => {
     const [chamRes, tecRes] = await Promise.all([
       supabase.from('chamados').select('*, condominios(name), profiles!chamados_tecnico_id_fkey(full_name)').order('created_at', { ascending: false }),
-      supabase.from('user_roles').select('user_id, profiles(id, full_name)').eq('role', 'tecnico'),
+      supabase.from('user_roles').select('user_id, profiles(id, full_name)').in('role', ['prestador', 'tecnico']),
     ]);
     setChamados(chamRes.data || []);
     setTecnicos(tecRes.data?.map((t: any) => t.profiles) || []);

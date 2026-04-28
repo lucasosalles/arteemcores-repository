@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'prestador' | 'tecnico';
+type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'prestador' | 'tecnico' | string;
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,17 +22,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" replace />;
   }
 
+  // Sessão existe mas role não foi carregado = vai para login (evita loading infinito)
+  if (!loading && session && !role) {
+    return <Navigate to="/login" replace />;
+  }
+
   // Role não permitida — redireciona para o dashboard do próprio perfil
+  // tecnico no banco é tratado como prestador no frontend (Beta 1.0)
   if (!loading && session && role && !allowedRoles.includes(role)) {
+    const effectiveRole = role === 'tecnico' ? 'prestador' : role;
     const roleHome: Record<string, string> = {
-      admin: '/admin/dashboard',
-      sindico: '/sindico/dashboard',
-      tecnico: '/tecnico/dashboard',
-      morador: '/morador/chamados',
+      admin:     '/admin/dashboard',
+      sindico:   '/sindico/dashboard',
+      morador:   '/morador/chamados',
       arquiteto: '/arquiteto/dashboard',
       prestador: '/prestador/dashboard',
     };
-    return <Navigate to={roleHome[role] ?? '/login'} replace />;
+    return <Navigate to={roleHome[effectiveRole] ?? '/login'} replace />;
   }
 
   // Ainda carregando
