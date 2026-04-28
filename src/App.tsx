@@ -28,6 +28,10 @@ import ArquitetoPrestadores from "@/pages/arquiteto/ArquitetoPrestadores";
 import ArquitetoCondominio from "@/pages/arquiteto/ArquitetoCondominio";
 import ArquitetoPlano from "@/pages/arquiteto/ArquitetoPlano";
 import PrestadorDashboard from "@/pages/prestador/PrestadorDashboard";
+import PrestadorChamados from "@/pages/prestador/PrestadorChamados";
+import PrestadorOrcamentos from "@/pages/prestador/PrestadorOrcamentos";
+import PrestadorServicos from "@/pages/prestador/PrestadorServicos";
+import PrestadorClientes from "@/pages/prestador/PrestadorClientes";
 import OrcamentosPage from "@/pages/orcamentos/OrcamentosPage";
 import PrestadorDisponibilidade from "@/pages/prestador/PrestadorDisponibilidade";
 import PlaceholderPage from "@/pages/PlaceholderPage";
@@ -88,11 +92,13 @@ const App = () => (
             {/* Prestador routes */}
             <Route path="/prestador" element={<ProtectedRoute allowedRoles={['prestador']}><Navigate to="/prestador/dashboard" replace /></ProtectedRoute>} />
             <Route path="/prestador/dashboard" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorDashboard /></AppLayout></ProtectedRoute>} />
-            <Route path="/prestador/chamados" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Chamados" /></AppLayout></ProtectedRoute>} />
-            <Route path="/prestador/orcamentos" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><OrcamentosPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/prestador/disponibilidade" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorDisponibilidade /></AppLayout></ProtectedRoute>} />
-            <Route path="/prestador/historico" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Histórico" /></AppLayout></ProtectedRoute>} />
-            <Route path="/prestador/plano" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Meu Plano" /></AppLayout></ProtectedRoute>} />
+            <Route path="/prestador/chamados" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorChamados /></AppLayout></ProtectedRoute>} />
+            <Route path="/prestador/orcamentos" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorOrcamentos /></AppLayout></ProtectedRoute>} />
+            <Route path="/prestador/servicos" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorServicos /></AppLayout></ProtectedRoute>} />
+            <Route path="/prestador/clientes" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorClientes /></AppLayout></ProtectedRoute>} />
+            <Route path="/prestador/disponibilidade" element={<ProtectedRoute allowedRoles={['prestador']}><Navigate to="/prestador/servicos" replace /></ProtectedRoute>} />
+            <Route path="/prestador/historico" element={<ProtectedRoute allowedRoles={['prestador']}><Navigate to="/prestador/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/prestador/plano" element={<ProtectedRoute allowedRoles={['prestador']}><Navigate to="/prestador/dashboard" replace /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

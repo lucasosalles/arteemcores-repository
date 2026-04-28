@@ -40,12 +40,11 @@ const arquitetoNav: NavItem[] = [
 ];
 
 const prestadorNav: NavItem[] = [
-  { label: 'Dashboard',      path: '/prestador/dashboard',      icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Chamados',       path: '/prestador/chamados',       icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Orçamentos',     path: '/prestador/orcamentos',     icon: <FileText className="w-5 h-5" /> },
-  { label: 'Disponibilidade',path: '/prestador/disponibilidade',icon: <CalendarCheck className="w-5 h-5" /> },
-  { label: 'Histórico',      path: '/prestador/historico',      icon: <History className="w-5 h-5" /> },
-  { label: 'Meu Plano',      path: '/prestador/plano',          icon: <Star className="w-5 h-5" /> },
+  { label: 'Dashboard',  path: '/prestador/dashboard',  icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Chamados',   path: '/prestador/chamados',   icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Orçamentos', path: '/prestador/orcamentos', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Serviços',   path: '/prestador/servicos',   icon: <CalendarCheck className="w-5 h-5" /> },
+  { label: 'Clientes',   path: '/prestador/clientes',   icon: <Users className="w-5 h-5" /> },
 ];
 
 const adminNav: NavItem[] = [
