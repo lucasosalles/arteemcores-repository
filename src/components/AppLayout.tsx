@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, LogOut,
   ClipboardList, Star, BarChart3, Building2, CreditCard,
-  Wrench, History, Bell, HardHat
+  Wrench, History, Bell, Users, FileText, CalendarCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -15,35 +15,42 @@ interface NavItem {
 }
 
 const sindicoNav: NavItem[] = [
-  { label: 'Dashboard', path: '/sindico', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Chamados', path: '/sindico/chamados', icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Meu Plano', path: '/sindico/plano', icon: <Star className="w-5 h-5" /> },
-  { label: 'Relatórios', path: '/sindico/relatorios', icon: <BarChart3 className="w-5 h-5" /> },
-];
-
-const tecnicoNav: NavItem[] = [
-  { label: 'Dashboard', path: '/tecnico', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Disponíveis', path: '/tecnico/disponiveis', icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Histórico', path: '/tecnico/historico', icon: <History className="w-5 h-5" /> },
+  { label: 'Dashboard',   path: '/sindico/dashboard',  icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Chamados',    path: '/sindico/chamados',   icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Orçamentos',  path: '/sindico/orcamentos', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Técnicos',    path: '/sindico/tecnicos',   icon: <Wrench className="w-5 h-5" /> },
+  { label: 'Relatórios',  path: '/sindico/relatorios', icon: <BarChart3 className="w-5 h-5" /> },
+  { label: 'Meu Plano',   path: '/sindico/plano',      icon: <Star className="w-5 h-5" /> },
 ];
 
 const moradorNav: NavItem[] = [
-  { label: 'Meus Chamados', path: '/morador/chamados', icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Chamados',   path: '/morador/chamados',   icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Orçamentos', path: '/morador/orcamentos', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Histórico',  path: '/morador/historico',  icon: <History className="w-5 h-5" /> },
 ];
 
 const arquitetoNav: NavItem[] = [
-  { label: 'Dashboard', path: '/arquiteto/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Dashboard',   path: '/arquiteto/dashboard',  icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Orçamentos',  path: '/arquiteto/orcamentos', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Chamados',    path: '/arquiteto/chamados',   icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Prestadores', path: '/arquiteto/prestadores',icon: <Users className="w-5 h-5" /> },
+  { label: 'Condomínio',  path: '/arquiteto/condominio', icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Meu Plano',   path: '/arquiteto/plano',      icon: <Star className="w-5 h-5" /> },
 ];
 
 const prestadorNav: NavItem[] = [
-  { label: 'Dashboard', path: '/prestador/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Dashboard',      path: '/prestador/dashboard',      icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Chamados',       path: '/prestador/chamados',       icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Orçamentos',     path: '/prestador/orcamentos',     icon: <FileText className="w-5 h-5" /> },
+  { label: 'Disponibilidade',path: '/prestador/disponibilidade',icon: <CalendarCheck className="w-5 h-5" /> },
+  { label: 'Histórico',      path: '/prestador/historico',      icon: <History className="w-5 h-5" /> },
+  { label: 'Meu Plano',      path: '/prestador/plano',          icon: <Star className="w-5 h-5" /> },
 ];
 
 const adminNav: NavItem[] = [
-  { label: 'Dashboard',   path: '/admin',              icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Dashboard',   path: '/admin/dashboard',    icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Chamados',    path: '/admin/chamados',     icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Técnicos',    path: '/admin/tecnicos',     icon: <Wrench className="w-5 h-5" /> },
-  { label: 'Arquitetos',  path: '/admin/arquitetos',   icon: <HardHat className="w-5 h-5" /> },
+  { label: 'Prestadores', path: '/admin/prestadores',  icon: <Users className="w-5 h-5" /> },
   { label: 'Condomínios', path: '/admin/condominios',  icon: <Building2 className="w-5 h-5" /> },
   { label: 'Financeiro',  path: '/admin/financeiro',   icon: <CreditCard className="w-5 h-5" /> },
   { label: 'Relatórios',  path: '/admin/relatorios',   icon: <BarChart3 className="w-5 h-5" /> },
@@ -58,9 +65,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
 
   const navItems =
-    role === 'sindico'   ? sindicoNav  :
-    role === 'tecnico'   ? tecnicoNav  :
-    role === 'morador'   ? moradorNav  :
+    role === 'sindico'   ? sindicoNav   :
+    role === 'morador'   ? moradorNav   :
     role === 'arquiteto' ? arquitetoNav :
     role === 'prestador' ? prestadorNav :
     adminNav;
@@ -87,7 +93,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === '/sindico' || item.path === '/tecnico' || item.path === '/admin'}
+              end={item.path === '/sindico/dashboard' || item.path === '/admin/dashboard'}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
@@ -141,7 +147,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <NavLink
             key={item.path}
             to={item.path}
-            end={item.path === '/sindico' || item.path === '/tecnico' || item.path === '/admin'}
+            end={item.path === '/sindico/dashboard' || item.path === '/admin/dashboard'}
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center py-2 text-xs font-medium transition-colors ${
                 isActive ? 'text-secondary' : 'text-muted-foreground'
