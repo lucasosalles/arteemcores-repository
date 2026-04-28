@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,11 +21,11 @@ export default function NotificationBell() {
   const navigate = useNavigate();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [open, setOpen] = useState(false);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const naoLidas = notificacoes.filter(n => !n.lida).length;
 
-  const fetchNotificacoes = async () => {
+  const fetchNotificacoes = useCallback(async () => {
     if (!profile?.id) return;
     const { data } = await supabase
       .from('notificacoes')
@@ -34,46 +34,20 @@ export default function NotificationBell() {
       .order('created_at', { ascending: false })
       .limit(5);
     setNotificacoes((data as Notificacao[]) || []);
-  };
+  }, [profile?.id]);
 
   useEffect(() => {
     if (!profile?.id) return;
 
     fetchNotificacoes();
 
-    const channelName = `notificacoes:${profile.id}`;
-
-    // Remove qualquer canal residual com o mesmo nome antes de criar um novo.
-    // unsubscribe() não remove do registry interno do Supabase; removeChannel() sim.
-    supabase.getChannels().forEach(ch => {
-      if (ch.topic === channelName) supabase.removeChannel(ch);
-    });
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notificacoes',
-          filter: `usuario_id=eq.${profile.id}`,
-        },
-        (payload) => {
-          setNotificacoes(prev => {
-            const nova = payload.new as Notificacao;
-            return [nova, ...prev].slice(0, 5);
-          });
-        },
-      )
-      .subscribe();
-
-    channelRef.current = channel;
+    // Polling a cada 30s — mais confiável que WebSocket no plano Free do Supabase
+    intervalRef.current = setInterval(fetchNotificacoes, 30_000);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [profile?.id]);
+  }, [fetchNotificacoes]);
 
   const handleClick = async (notif: Notificacao) => {
     if (!notif.lida) {
