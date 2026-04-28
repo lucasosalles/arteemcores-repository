@@ -163,7 +163,36 @@ export async function abrirChamado(
     console.error('[chamadoFlow] Erro ao gravar histórico na abertura:', histError.message);
   }
 
-  return { ok: true, data: { id: data.id, numero: data.numero } };
+  // ─── Verificação de plano ────────────────────────────────────────────────
+  let foraDoPlano = false;
+  const { data: condoData } = await supabase
+    .from('condominios')
+    .select('atendimentos_mes, limite_atendimentos')
+    .eq('id', params.condominioId)
+    .maybeSingle();
+
+  if (condoData) {
+    foraDoPlano = (condoData.atendimentos_mes ?? 0) >= (condoData.limite_atendimentos ?? 999);
+    await supabase
+      .from('condominios')
+      .update({ atendimentos_mes: (condoData.atendimentos_mes ?? 0) + 1 })
+      .eq('id', params.condominioId);
+
+    if (foraDoPlano) {
+      await supabase.from('orcamentos').insert({
+        chamado_id: data.id,
+        condominio_id: params.condominioId,
+        solicitante_id: params.criadoPor,
+        titulo: params.titulo,
+        tipo: params.tipo,
+        descricao: `Serviço fora do plano vinculado ao chamado #${data.numero}. ${params.descricao}`,
+        status: 'enviado',
+        dentro_do_plano: false,
+      });
+    }
+  }
+
+  return { ok: true, data: { id: data.id, numero: data.numero, foraDoPlano } };
 }
 
 // ─── atribuirChamado ─────────────────────────────────────────────────────────
@@ -259,4 +288,44 @@ export function statusDisponiveis(
   statusAtual: string,
 ): ChamadoStatus[] {
   return TRANSICOES_PERMITIDAS[perfil]?.[statusAtual] ?? [];
+}
+
+// ─── criarOrcamentoParaChamado ────────────────────────────────────────────────
+//
+// Usado por: SindicoChamados (ação manual "Adicionar Serviço Extra")
+// Cria um orçamento vinculado a um chamado existente como serviço fora do plano.
+
+export interface CriarOrcamentoParaChamadoParams {
+  chamadoId: string;
+  condominioId: string;
+  titulo: string;
+  tipo: string;
+  descricao: string;
+  solicitanteId: string;
+  numeroChamado: number;
+}
+
+export async function criarOrcamentoParaChamado(
+  params: CriarOrcamentoParaChamadoParams,
+): Promise<FlowResult<{ orcamentoId: string }>> {
+  const { data, error } = await supabase
+    .from('orcamentos')
+    .insert({
+      chamado_id: params.chamadoId,
+      condominio_id: params.condominioId,
+      solicitante_id: params.solicitanteId,
+      titulo: params.titulo,
+      tipo: params.tipo,
+      descricao: params.descricao || `Serviço extra vinculado ao chamado #${params.numeroChamado}`,
+      status: 'enviado',
+      dentro_do_plano: false,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    return { ok: false, erro: error.message };
+  }
+
+  return { ok: true, data: { orcamentoId: data.id } };
 }

@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { abrirChamado } from '@/lib/chamadoFlow';
+import { abrirChamado, criarOrcamentoParaChamado } from '@/lib/chamadoFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Search, Loader2, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 const tipoOptions = [
@@ -79,6 +79,9 @@ const SindicoChamados: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState('todos');
   const [search, setSearch] = useState('');
 
+  const [chamadosComOrcamento, setChamadosComOrcamento] = useState<Set<string>>(new Set());
+  const [addingExtra, setAddingExtra] = useState<string | null>(null);
+
   const [showNew, setShowNew] = useState(searchParams.get('novo') === 'true');
   const [step, setStep] = useState(1);
   const [newTitulo, setNewTitulo] = useState('');
@@ -108,10 +111,21 @@ const SindicoChamados: React.FC = () => {
 
     if (condoData) {
       setCondo(condoData);
-      const { data } = await supabase
+      const { data: chamadosData } = await supabase
         .from('chamados').select('*').eq('condominio_id', condoData.id)
         .order('created_at', { ascending: false });
-      setChamados(data || []);
+      setChamados(chamadosData || []);
+
+      // Quais chamados já têm orçamento vinculado (fora do plano)
+      if (chamadosData && chamadosData.length > 0) {
+        const ids = chamadosData.map((c: any) => c.id);
+        const { data: orcData } = await supabase
+          .from('orcamentos')
+          .select('chamado_id')
+          .in('chamado_id', ids);
+        const set = new Set<string>((orcData || []).map((o: any) => o.chamado_id));
+        setChamadosComOrcamento(set);
+      }
     }
     setLoading(false);
   };
@@ -155,6 +169,26 @@ const SindicoChamados: React.FC = () => {
     setSubmitting(false);
   };
 
+  const handleAddServico = async (c: any) => {
+    setAddingExtra(c.id);
+    const result = await criarOrcamentoParaChamado({
+      chamadoId: c.id,
+      condominioId: condo?.id ?? c.condominio_id,
+      titulo: c.titulo || c.local,
+      tipo: c.tipo,
+      descricao: c.descricao ?? '',
+      solicitanteId: profile!.id,
+      numeroChamado: c.numero,
+    });
+    if (!result.ok) {
+      toast.error('Erro ao criar serviço extra', { description: result.erro });
+    } else {
+      toast.success('Orçamento de serviço extra criado e enviado para prestadores');
+      fetchData();
+    }
+    setAddingExtra(null);
+  };
+
   const resetForm = () => {
     setStep(1); setNewTitulo(''); setNewTipo(''); setNewLocal('');
     setNewDescricao(''); setNewPrioridade('media');
@@ -179,6 +213,40 @@ const SindicoChamados: React.FC = () => {
           <Plus className="w-4 h-4 mr-2" /> Novo Chamado
         </Button>
       </div>
+
+      {/* Barra de uso do plano */}
+      {condo && (
+        <div className="glass-card p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              Uso do plano <span className="capitalize font-medium text-foreground">{condo.plano}</span>
+            </span>
+            <span className={`font-semibold ${
+              (condo.atendimentos_mes ?? 0) >= (condo.limite_atendimentos ?? 0)
+                ? 'text-destructive' : 'text-foreground'
+            }`}>
+              {condo.atendimentos_mes ?? 0} / {condo.limite_atendimentos ?? 0} atendimentos
+            </span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${
+                (condo.atendimentos_mes ?? 0) >= (condo.limite_atendimentos ?? 1)
+                  ? 'bg-destructive' : 'bg-secondary'
+              }`}
+              style={{
+                width: `${Math.min(100, ((condo.atendimentos_mes ?? 0) / (condo.limite_atendimentos ?? 1)) * 100)}%`,
+              }}
+            />
+          </div>
+          {(condo.atendimentos_mes ?? 0) >= (condo.limite_atendimentos ?? 0) && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              Limite atingido — novos chamados gerarão orçamento de serviço extra automaticamente.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -208,25 +276,51 @@ const SindicoChamados: React.FC = () => {
         <div className="text-center py-12 text-muted-foreground">Nenhum chamado encontrado.</div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(c => (
-            <div key={c.id} className="glass-card p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{tipoLabel[c.tipo]?.split(' ')[0] || '📋'}</span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    #{String(c.numero).padStart(4, '0')} — {c.titulo || c.local}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(c.data_abertura || c.created_at).toLocaleDateString('pt-BR')}
-                  </p>
+          {filtered.map(c => {
+            const temOrcamento = chamadosComOrcamento.has(c.id);
+            return (
+              <div key={c.id} className="glass-card p-4 space-y-2 hover:bg-muted/30 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{tipoLabel[c.tipo]?.split(' ')[0] || '📋'}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        #{String(c.numero).padStart(4, '0')} — {c.titulo || c.local}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(c.data_abertura || c.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {temOrcamento && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-destructive/20 text-destructive flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Fora do Plano
+                      </span>
+                    )}
+                    {prioridadeBadge(c.prioridade)}
+                    {statusBadge(c.status)}
+                  </div>
                 </div>
+                {!temOrcamento && c.status !== 'cancelado' && c.status !== 'concluido' && (
+                  <div className="pl-9">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      disabled={addingExtra === c.id}
+                      onClick={() => handleAddServico(c)}
+                    >
+                      {addingExtra === c.id
+                        ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                        : <AlertTriangle className="w-3 h-3 mr-1" />}
+                      Adicionar Serviço Extra
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                {prioridadeBadge(c.prioridade)}
-                {statusBadge(c.status)}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
