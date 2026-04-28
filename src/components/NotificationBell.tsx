@@ -41,9 +41,16 @@ export default function NotificationBell() {
 
     fetchNotificacoes();
 
-    // Realtime subscription
-    channelRef.current = supabase
-      .channel(`notificacoes:${profile.id}`)
+    const channelName = `notificacoes:${profile.id}`;
+
+    // Remove qualquer canal residual com o mesmo nome antes de criar um novo.
+    // unsubscribe() não remove do registry interno do Supabase; removeChannel() sim.
+    supabase.getChannels().forEach(ch => {
+      if (ch.topic === channelName) supabase.removeChannel(ch);
+    });
+
+    const channel = supabase
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -61,8 +68,10 @@ export default function NotificationBell() {
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      channelRef.current?.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [profile?.id]);
 
