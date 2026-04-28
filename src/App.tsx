@@ -23,6 +23,7 @@ import MoradorChamados from "@/pages/morador/MoradorChamados";
 import ArquitetoDashboard from "@/pages/arquiteto/ArquitetoDashboard";
 import PrestadorDashboard from "@/pages/prestador/PrestadorDashboard";
 import OrcamentosPage from "@/pages/orcamentos/OrcamentosPage";
+import PrestadorDisponibilidade from "@/pages/prestador/PrestadorDisponibilidade";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -82,7 +83,7 @@ const App = () => (
             <Route path="/prestador/dashboard" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorDashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/prestador/chamados" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Chamados" /></AppLayout></ProtectedRoute>} />
             <Route path="/prestador/orcamentos" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><OrcamentosPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/prestador/disponibilidade" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Disponibilidade" /></AppLayout></ProtectedRoute>} />
+            <Route path="/prestador/disponibilidade" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PrestadorDisponibilidade /></AppLayout></ProtectedRoute>} />
             <Route path="/prestador/historico" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Histórico" /></AppLayout></ProtectedRoute>} />
             <Route path="/prestador/plano" element={<ProtectedRoute allowedRoles={['prestador']}><AppLayout><PlaceholderPage title="Meu Plano" /></AppLayout></ProtectedRoute>} />
 
