@@ -15,6 +15,8 @@ import SindicoRelatorios from "@/pages/sindico/SindicoRelatorios";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminChamados from "@/pages/admin/AdminChamados";
 import AdminTecnicos from "@/pages/admin/AdminTecnicos";
+import AdminPrestadores from "@/pages/admin/AdminPrestadores";
+import SindicoPrestadores from "@/pages/sindico/SindicoPrestadores";
 import AdminArquitetos from "@/pages/admin/AdminArquitetos";
 import AdminCondominios from "@/pages/admin/AdminCondominios";
 import AdminFinanceiro from "@/pages/admin/AdminFinanceiro";
@@ -51,7 +53,8 @@ const App = () => (
             <Route path="/sindico/plano" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoPlano /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/relatorios" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoRelatorios /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/orcamentos" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><OrcamentosPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/sindico/tecnicos" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><PlaceholderPage title="Técnicos" /></AppLayout></ProtectedRoute>} />
+            <Route path="/sindico/tecnicos" element={<ProtectedRoute allowedRoles={['sindico']}><Navigate to="/sindico/prestadores" replace /></ProtectedRoute>} />
+            <Route path="/sindico/prestadores" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoPrestadores /></AppLayout></ProtectedRoute>} />
 
             {/* Técnico — desativado no Beta 1.0; redireciona para login */}
             <Route path="/tecnico/*" element={<Navigate to="/login" replace />} />
@@ -65,7 +68,7 @@ const App = () => (
             <Route path="/admin/condominios" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminCondominios /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/financeiro" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminFinanceiro /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/relatorios" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminRelatorios /></AppLayout></ProtectedRoute>} />
-            <Route path="/admin/prestadores" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><PlaceholderPage title="Prestadores" /></AppLayout></ProtectedRoute>} />
+            <Route path="/admin/prestadores" element={<ProtectedRoute allowedRoles={['admin']}><AppLayout><AdminPrestadores /></AppLayout></ProtectedRoute>} />
 
             {/* Morador routes */}
             <Route path="/morador" element={<ProtectedRoute allowedRoles={['morador']}><Navigate to="/morador/chamados" replace /></ProtectedRoute>} />
