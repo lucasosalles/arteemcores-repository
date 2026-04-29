@@ -23,10 +23,10 @@ import AdminFinanceiro from "@/pages/admin/AdminFinanceiro";
 import AdminRelatorios from "@/pages/admin/AdminRelatorios";
 import MoradorChamados from "@/pages/morador/MoradorChamados";
 import ArquitetoDashboard from "@/pages/arquiteto/ArquitetoDashboard";
-import ArquitetoChamados from "@/pages/arquiteto/ArquitetoChamados";
+import ArquitetoOrcamentos from "@/pages/arquiteto/ArquitetoOrcamentos";
 import ArquitetoPrestadores from "@/pages/arquiteto/ArquitetoPrestadores";
-import ArquitetoCondominio from "@/pages/arquiteto/ArquitetoCondominio";
-import ArquitetoPlano from "@/pages/arquiteto/ArquitetoPlano";
+import ArquitetoPortfolio from "@/pages/arquiteto/ArquitetoPortfolio";
+import ArquitetoClientes from "@/pages/arquiteto/ArquitetoClientes";
 import PrestadorDashboard from "@/pages/prestador/PrestadorDashboard";
 import PrestadorChamados from "@/pages/prestador/PrestadorChamados";
 import PrestadorOrcamentos from "@/pages/prestador/PrestadorOrcamentos";
@@ -84,11 +84,13 @@ const App = () => (
             {/* Arquiteto routes */}
             <Route path="/arquiteto" element={<ProtectedRoute allowedRoles={['arquiteto']}><Navigate to="/arquiteto/dashboard" replace /></ProtectedRoute>} />
             <Route path="/arquiteto/dashboard" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoDashboard /></AppLayout></ProtectedRoute>} />
-            <Route path="/arquiteto/orcamentos" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><OrcamentosPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/arquiteto/chamados" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoChamados /></AppLayout></ProtectedRoute>} />
+            <Route path="/arquiteto/orcamentos" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoOrcamentos /></AppLayout></ProtectedRoute>} />
             <Route path="/arquiteto/prestadores" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoPrestadores /></AppLayout></ProtectedRoute>} />
-            <Route path="/arquiteto/condominio" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoCondominio /></AppLayout></ProtectedRoute>} />
-            <Route path="/arquiteto/plano" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoPlano /></AppLayout></ProtectedRoute>} />
+            <Route path="/arquiteto/portfolio" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoPortfolio /></AppLayout></ProtectedRoute>} />
+            <Route path="/arquiteto/clientes" element={<ProtectedRoute allowedRoles={['arquiteto']}><AppLayout><ArquitetoClientes /></AppLayout></ProtectedRoute>} />
+            <Route path="/arquiteto/chamados" element={<ProtectedRoute allowedRoles={['arquiteto']}><Navigate to="/arquiteto/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/arquiteto/condominio" element={<ProtectedRoute allowedRoles={['arquiteto']}><Navigate to="/arquiteto/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/arquiteto/plano" element={<ProtectedRoute allowedRoles={['arquiteto']}><Navigate to="/arquiteto/dashboard" replace /></ProtectedRoute>} />
 
             {/* Prestador routes */}
             <Route path="/prestador" element={<ProtectedRoute allowedRoles={['prestador']}><Navigate to="/prestador/dashboard" replace /></ProtectedRoute>} />

@@ -3,8 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, LogOut,
-  ClipboardList, Star, BarChart3, Building2, CreditCard,
-  History, Users, FileText, CalendarCheck
+  ClipboardList, BarChart3, Building2, CreditCard,
+  Users, FileText, CalendarCheck, LayoutGrid, UserCheck,
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
@@ -30,12 +30,11 @@ const moradorNav: NavItem[] = [
 ];
 
 const arquitetoNav: NavItem[] = [
-  { label: 'Dashboard',   path: '/arquiteto/dashboard',  icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Orçamentos',  path: '/arquiteto/orcamentos', icon: <FileText className="w-5 h-5" /> },
-  { label: 'Chamados',    path: '/arquiteto/chamados',   icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Prestadores', path: '/arquiteto/prestadores',icon: <Users className="w-5 h-5" /> },
-  { label: 'Condomínio',  path: '/arquiteto/condominio', icon: <Building2 className="w-5 h-5" /> },
-  { label: 'Meu Plano',   path: '/arquiteto/plano',      icon: <Star className="w-5 h-5" /> },
+  { label: 'Dashboard',  path: '/arquiteto/dashboard',  icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Orçamentos', path: '/arquiteto/orcamentos', icon: <FileText className="w-5 h-5" /> },
+  { label: 'Prestadores',path: '/arquiteto/prestadores',icon: <Users className="w-5 h-5" /> },
+  { label: 'Portfólio',  path: '/arquiteto/portfolio',  icon: <LayoutGrid className="w-5 h-5" /> },
+  { label: 'Clientes',   path: '/arquiteto/clientes',   icon: <UserCheck className="w-5 h-5" /> },
 ];
 
 const prestadorNav: NavItem[] = [
