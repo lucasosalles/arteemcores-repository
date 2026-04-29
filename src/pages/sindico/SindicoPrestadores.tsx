@@ -71,6 +71,7 @@ export default function SindicoPrestadores() {
     if (!profile?.id) return;
     setLoading(true);
 
+    // Busca condominios do síndico
     const { data: condosData } = await supabase
       .from('condominios')
       .select('id, name')
@@ -79,48 +80,40 @@ export default function SindicoPrestadores() {
     if (!condosData || condosData.length === 0) { setLoading(false); return; }
     setCondos(condosData);
 
-    const condoIds = condosData.map((c: Condo) => c.id);
+    // RPC SECURITY DEFINER — faz JOIN profiles+disponibilidade sem ser bloqueado
+    // por RLS (profiles só permite SELECT para admin na policy atual)
+    const { data: rows, error: rpcError } = await supabase
+      .rpc('get_prestadores_do_sindico', { p_sindico_id: profile.id });
 
-    const vinculosRes = await supabase
-      .from('prestador_condominios')
-      .select('prestador_id, condominio_id')
-      .in('condominio_id', condoIds);
+    console.log('[SindicoPrestadores] fetchAll get_prestadores_do_sindico:', { rows, rpcError });
 
-    console.log('[SindicoPrestadores] fetchAll — condoIds:', condoIds, '| vinculos result:', JSON.stringify(vinculosRes));
+    if (rpcError) {
+      console.error('[SindicoPrestadores] fetchAll RPC error:', rpcError);
+      setLoading(false);
+      return;
+    }
 
-    const vinculos = vinculosRes.data;
+    if (!rows || rows.length === 0) { setPrestadores([]); setLoading(false); return; }
 
-    if (!vinculos || vinculos.length === 0) { setPrestadores([]); setLoading(false); return; }
+    // Agrupa por prestador_id (pode aparecer N vezes se vinculado a N condos)
+    const map = new Map<string, Prestador>();
+    for (const row of rows as any[]) {
+      if (map.has(row.prestador_id)) {
+        map.get(row.prestador_id)!.condominioIds.push(row.condominio_id);
+      } else {
+        map.set(row.prestador_id, {
+          id: row.prestador_id,
+          full_name: row.full_name,
+          phone: row.phone ?? null,
+          disponivel: row.disponivel ?? null,
+          especialidades: row.especialidades ?? null,
+          tempo_medio_execucao_dias: row.tempo_medio_execucao_dias ?? null,
+          condominioIds: [row.condominio_id],
+        });
+      }
+    }
 
-    const prestadorIds = [...new Set(vinculos.map((v: any) => v.prestador_id))];
-
-    // profiles NÃO tem coluna email — omitir da seleção
-    const [profilesRes, dispRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone').in('id', prestadorIds),
-      supabase.from('disponibilidade_prestador')
-        .select('prestador_id, disponivel, especialidades, tempo_medio_execucao_dias')
-        .in('prestador_id', prestadorIds),
-    ]);
-
-    if (profilesRes.error) { console.error('fetchAll profiles error:', profilesRes.error); }
-
-    const dispMap = new Map((dispRes.data || []).map((d: any) => [d.prestador_id, d]));
-
-    const lista: Prestador[] = (profilesRes.data || []).map((p: any) => {
-      const disp = dispMap.get(p.id);
-      const condIds = vinculos.filter((v: any) => v.prestador_id === p.id).map((v: any) => v.condominio_id);
-      return {
-        id: p.id,
-        full_name: p.full_name,
-        phone: p.phone,
-        disponivel: disp?.disponivel ?? null,
-        especialidades: disp?.especialidades ?? null,
-        tempo_medio_execucao_dias: disp?.tempo_medio_execucao_dias ?? null,
-        condominioIds: condIds,
-      };
-    });
-
-    lista.sort((a, b) => {
+    const lista = [...map.values()].sort((a, b) => {
       if (a.disponivel === b.disponivel) return 0;
       return a.disponivel === true ? -1 : 1;
     });
