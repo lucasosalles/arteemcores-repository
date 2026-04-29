@@ -24,11 +24,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const clearAuthStorage = () => {
+const PROJECT_REF = 'nwrpcxmkcjvpemgtdmfd';
+const SUPABASE_AUTH_KEYS = [
+  `sb-${PROJECT_REF}-auth-token`,
+  `sb-${PROJECT_REF}-auth-token-code-verifier`,
+];
+
+export const clearAuthStorage = () => {
+  // Remove known Supabase keys explicitly first
+  SUPABASE_AUTH_KEYS.forEach(k => {
+    try { localStorage.removeItem(k); } catch {}
+    try { sessionStorage.removeItem(k); } catch {}
+  });
+  // Then sweep any remaining supabase/auth keys
   Object.keys(localStorage)
     .filter(k => k.includes('supabase') || k.includes('auth') || k.startsWith('sb-'))
     .forEach(k => localStorage.removeItem(k));
-  // Defensively clear sessionStorage in case any adapter stored state there
   try { sessionStorage.clear(); } catch {}
 };
 
@@ -123,8 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
           initializedRef.current = true;
         }
-      } catch (err) {
-        console.error('Erro na inicialização do auth:', err);
+      } catch (err: any) {
+        // Any init error (session_timeout, refresh_token_not_found, invalid_refresh_token, etc.)
+        // means the stored session is unusable — wipe it immediately without attempting renewal.
+        console.warn('Auth init error, forcing reset:', err?.message ?? err);
         forceReset();
       } finally {
         clearTimeout(safetyTimer);

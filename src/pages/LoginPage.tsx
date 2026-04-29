@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, clearAuthStorage } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -148,9 +148,18 @@ const LoginPage: React.FC = () => {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            © 2026 Fino Haus — Todos os direitos reservados
-          </p>
+          <div className="text-center space-y-3">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-2 transition-colors"
+              onClick={() => { clearAuthStorage(); window.location.reload(); }}
+            >
+              Problemas para entrar? Clique aqui
+            </button>
+            <p className="text-sm text-muted-foreground">
+              © 2026 Fino Haus — Todos os direitos reservados
+            </p>
+          </div>
         </div>
       </div>
     </div>
