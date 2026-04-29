@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ClipboardList, Users, DollarSign, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 
 const COLORS = ['#7B2D8B', '#F5C800', '#9B3DB8', '#3DDC84', '#FF5454', '#4DA6FF'];
 
@@ -14,11 +15,13 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetch = async () => {
+      try {
       const [chamadosRes, pagRes, tecRes] = await Promise.all([
         supabase.from('chamados').select('*, condominios(name), profiles!chamados_tecnico_id_fkey(full_name)').order('created_at', { ascending: false }),
         supabase.from('pagamentos').select('*'),
         supabase.from('user_roles').select('user_id').in('role', ['prestador', 'tecnico']),
       ]);
+      if (chamadosRes.error) throw chamadosRes.error;
 
       const chamados = chamadosRes.data || [];
       const now = new Date();
@@ -63,6 +66,10 @@ const AdminDashboard: React.FC = () => {
       setChamadosPorSemana(Object.entries(weeks).map(([k, v]) => ({ name: k, chamados: v })));
       setRecentChamados(chamados.slice(0, 8));
       setLoading(false);
+      } catch (err: any) {
+        toast.error('Erro ao carregar dashboard: ' + (err?.message ?? 'Tente novamente.'));
+        setLoading(false);
+      }
     };
     fetch();
   }, []);

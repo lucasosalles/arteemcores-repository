@@ -28,6 +28,8 @@ const clearAuthStorage = () => {
   Object.keys(localStorage)
     .filter(k => k.includes('supabase') || k.includes('auth') || k.startsWith('sb-'))
     .forEach(k => localStorage.removeItem(k));
+  // Defensively clear sessionStorage in case any adapter stored state there
+  try { sessionStorage.clear(); } catch {}
 };
 
 const clearIfExpiredSession = () => {

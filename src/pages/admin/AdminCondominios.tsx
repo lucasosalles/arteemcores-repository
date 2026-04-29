@@ -56,8 +56,8 @@ const AdminCondominios: React.FC = () => {
       }));
 
       setCondos(condosComMoradores);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.error('Erro ao carregar condomínios: ' + (err?.message ?? 'Tente novamente.'));
     } finally {
       setLoading(false);
     }

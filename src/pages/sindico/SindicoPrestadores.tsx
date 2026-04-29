@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle2, XCircle, Users, Plus, Pencil, Search, X, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const ESPECIALIDADE_LABEL: Record<string, string> = {
   reparo: 'Reparo', arquitetura: 'Arquitetura', limpeza: 'Limpeza',
@@ -83,10 +84,8 @@ export default function SindicoPrestadores() {
     const { data: rows, error: rpcError } = await supabase
       .rpc('get_prestadores_do_sindico', { p_sindico_id: profile.id });
 
-    console.log('[SindicoPrestadores] fetchAll get_prestadores_do_sindico:', { rows, rpcError });
-
     if (rpcError) {
-      console.error('[SindicoPrestadores] fetchAll RPC error:', rpcError);
+      toast.error('Erro ao carregar prestadores: ' + rpcError.message);
       setLoading(false);
       return;
     }
@@ -125,7 +124,6 @@ export default function SindicoPrestadores() {
   // ── Abre modal com estado limpo ───────────────────────────────────────
   const openAddModal = () => {
     const firstCondoId = condos[0]?.id ?? '';
-    console.log('[SindicoPrestadores] openAddModal — condos:', condos, '→ addCondoId inicial:', firstCondoId);
     setShowAdd(true);
     setAddCondoId(firstCondoId);
     setAddTab('busca');
@@ -158,7 +156,7 @@ export default function SindicoPrestadores() {
     });
 
     if (error) {
-      console.error('search_prestadores error:', error);
+      toast.error('Erro na busca: ' + error.message);
       setSearchResults([]);
     } else {
       setSearchResults((data as SearchResult[]) || []);
@@ -177,7 +175,7 @@ export default function SindicoPrestadores() {
       exclude_condo_id: condoId || null,
     });
 
-    if (error) console.error('loadBase error:', error);
+    if (error) { toast.error('Erro ao carregar base de prestadores: ' + error.message); }
     setBaseList((data as SearchResult[]) || []);
     setLoadingBase(false);
   }, []);

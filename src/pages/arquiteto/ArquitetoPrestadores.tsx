@@ -55,7 +55,7 @@ export default function ArquitetoPrestadores() {
     if (!profile?.id) return;
     setLoading(true);
     const { data, error } = await supabase.rpc('get_prestadores_do_arquiteto', { p_arquiteto_id: profile.id });
-    if (error) console.error('fetchAll error:', error);
+    if (error) { toast.error('Erro ao carregar prestadores: ' + error.message); }
     setPrestadores((data as Prestador[]) || []);
     setLoading(false);
   }, [profile?.id]);
@@ -78,7 +78,7 @@ export default function ArquitetoPrestadores() {
     const { data, error } = await supabase.rpc('search_prestadores_for_arquiteto', {
       p_arquiteto_id: profile.id, search_term: searchQuery.trim(),
     });
-    if (error) console.error('search error:', error);
+    if (error) { toast.error('Erro na busca: ' + error.message); }
     setSearchResults((data as SearchResult[]) || []);
     setSearching(false);
   };
@@ -89,7 +89,7 @@ export default function ArquitetoPrestadores() {
     const { data, error } = await supabase.rpc('search_prestadores_for_arquiteto', {
       p_arquiteto_id: profile.id, search_term: '',
     });
-    if (error) console.error('loadBase error:', error);
+    if (error) { toast.error('Erro ao carregar base de prestadores: ' + error.message); }
     setBaseList((data as SearchResult[]) || []);
     setLoadingBase(false);
   }, [profile?.id]);

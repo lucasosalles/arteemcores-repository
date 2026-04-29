@@ -61,11 +61,12 @@ const MoradorChamados: React.FC = () => {
 
   const fetchChamados = async () => {
     if (!profile?.id) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('chamados')
       .select('*')
       .eq('criado_por', profile.id)
       .order('data_abertura', { ascending: false });
+    if (error) toast.error('Erro ao carregar chamados: ' + error.message);
     setChamados(data || []);
     setLoading(false);
   };
