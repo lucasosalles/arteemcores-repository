@@ -81,10 +81,14 @@ export default function SindicoPrestadores() {
 
     const condoIds = condosData.map((c: Condo) => c.id);
 
-    const { data: vinculos } = await supabase
+    const vinculosRes = await supabase
       .from('prestador_condominios')
       .select('prestador_id, condominio_id')
       .in('condominio_id', condoIds);
+
+    console.log('[SindicoPrestadores] fetchAll — condoIds:', condoIds, '| vinculos result:', JSON.stringify(vinculosRes));
+
+    const vinculos = vinculosRes.data;
 
     if (!vinculos || vinculos.length === 0) { setPrestadores([]); setLoading(false); return; }
 
@@ -129,8 +133,10 @@ export default function SindicoPrestadores() {
 
   // ── Abre modal com estado limpo ───────────────────────────────────────
   const openAddModal = () => {
+    const firstCondoId = condos[0]?.id ?? '';
+    console.log('[SindicoPrestadores] openAddModal — condos:', condos, '→ addCondoId inicial:', firstCondoId);
     setShowAdd(true);
-    setAddCondoId(condos[0]?.id ?? '');
+    setAddCondoId(firstCondoId);
     setAddTab('busca');
     setSearchQuery('');
     setSearchResults([]);
@@ -201,27 +207,44 @@ export default function SindicoPrestadores() {
 
   // ── Vincular prestador (via RPC SECURITY DEFINER) ────────────────────
   const handleAdd = async () => {
-    if (!selectedResult || !addCondoId) return;
+    if (!selectedResult || !addCondoId) {
+      console.warn('[SindicoPrestadores] handleAdd bloqueado — selectedResult:', selectedResult, 'addCondoId:', addCondoId);
+      setAddError(!addCondoId ? 'Nenhum condomínio selecionado. Reabra o modal e tente novamente.' : 'Selecione um prestador.');
+      return;
+    }
+
+    console.log('[SindicoPrestadores] handleAdd → chamando link_prestador_to_condo com:', {
+      p_prestador_id: selectedResult.id,
+      p_condominio_id: addCondoId,
+      prestador_nome: selectedResult.full_name,
+    });
+
     setAdding(true);
     setAddError('');
 
-    const { error } = await supabase.rpc('link_prestador_to_condo', {
+    const rpcResult = await supabase.rpc('link_prestador_to_condo', {
       p_prestador_id: selectedResult.id,
       p_condominio_id: addCondoId,
     });
 
+    console.log('[SindicoPrestadores] link_prestador_to_condo resultado completo:', JSON.stringify(rpcResult));
+
+    const { error } = rpcResult;
+
     if (error) {
-      setAddError(
-        error.message.includes('não é o síndico')
-          ? 'Sem permissão: você não é o síndico deste condomínio.'
-          : `Erro ao vincular: ${error.message}`
-      );
+      console.error('[SindicoPrestadores] ERRO ao vincular:', error);
+      const msg = error.message.includes('não é o síndico')
+        ? 'Sem permissão: você não é o síndico deste condomínio.'
+        : `Erro ao vincular: ${error.message} (code: ${error.code})`;
+      setAddError(msg);
+      // Mantém modal aberto para o usuário ver o erro
       setAdding(false);
       return;
     }
 
-    closeAddModal();
+    console.log('[SindicoPrestadores] Vínculo criado com sucesso. Recarregando lista...');
     setAdding(false);
+    closeAddModal();
     fetchAll();
   };
 
