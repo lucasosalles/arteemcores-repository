@@ -118,20 +118,13 @@ const SindicoChamados: React.FC = () => {
 
     const [chamRes, presRes] = await Promise.all([
       supabase.from('chamados').select('*, condominios(name)').in('condominio_id', condoIds).order('created_at', { ascending: false }),
-      // Prestadores disponíveis: all with disponivel=true
-      supabase.from('disponibilidade_prestador')
-        .select('prestador_id, disponivel, especialidades, profiles!disponibilidade_prestador_prestador_id_fkey(id, full_name)')
-        .eq('disponivel', true),
+      // RPC SECURITY DEFINER — acessa profiles sem ser bloqueado por RLS
+      supabase.rpc('get_prestadores_do_sindico', { p_sindico_id: profile.id }),
     ]);
 
     setChamados(chamRes.data || []);
-
-    const prests = (presRes.data || []).map((d: any) => ({
-      id: d.profiles?.id,
-      full_name: d.profiles?.full_name,
-      especialidades: d.especialidades,
-    })).filter(p => p.id);
-    setPrestadores(prests);
+    // Cada row tem { prestador_id, condominio_id, full_name, ... }
+    setPrestadores(presRes.data || []);
     setLoading(false);
   }, [profile?.id]);
 
@@ -386,7 +379,7 @@ const SindicoChamados: React.FC = () => {
               <div><Label className="text-foreground/80">Prestador (opcional)</Label>
                 <select value={newPrestador} onChange={e => setNewPrestador(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground mt-1">
                   <option value="">Nenhum (a atribuir depois)</option>
-                  {prestadores.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                  {prestadores.filter((p: any) => !newCondo || p.condominio_id === newCondo).map((p: any) => <option key={p.prestador_id} value={p.prestador_id}>{p.full_name}</option>)}
                 </select>
               </div>
               <div className="flex gap-2">
@@ -464,8 +457,13 @@ const SindicoChamados: React.FC = () => {
               <Label className="text-foreground/80">Selecionar prestador disponível</Label>
               <select value={novoPrestador} onChange={e => setNovoPrestador(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground mt-1">
                 <option value="">Selecione...</option>
-                {prestadores.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {prestadores
+                  .filter((p: any) => p.condominio_id === trocaPrestador?.condominio_id)
+                  .map((p: any) => <option key={p.prestador_id} value={p.prestador_id}>{p.full_name}</option>)}
               </select>
+              {prestadores.filter((p: any) => p.condominio_id === trocaPrestador?.condominio_id).length === 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Nenhum prestador vinculado a este condomínio. Adicione via aba Prestadores.</p>
+              )}
             </div>
           </div>
           <DialogFooter className="mt-4">

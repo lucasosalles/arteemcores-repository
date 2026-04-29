@@ -70,38 +70,39 @@ const SindicoCondominios: React.FC = () => {
   useEffect(() => { fetchCondos(); }, [fetchCondos]);
 
   const fetchDetailData = useCallback(async (condoId: string) => {
+    if (!profile?.id) return;
     setDetailLoading(true);
-    const [morRes, chamRes, orcRes, atribRes] = await Promise.all([
+
+    const [morRes, chamRes, orcRes, presRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, phone').eq('condominio_id', condoId),
       supabase.from('chamados').select('id, numero, titulo, local, tipo, status, prioridade, data_abertura, created_at, atribuido_para')
         .eq('condominio_id', condoId).order('created_at', { ascending: false }),
       supabase.from('orcamentos').select('id, titulo, tipo, status, valor_proposto, prazo_dias, data_solicitacao')
         .eq('condominio_id', condoId).order('data_solicitacao', { ascending: false }),
-      supabase.from('chamados').select('atribuido_para').eq('condominio_id', condoId).not('atribuido_para', 'is', null),
+      // RPC SECURITY DEFINER — faz JOIN profiles sem ser bloqueado por RLS
+      supabase.rpc('get_prestadores_do_sindico', { p_sindico_id: profile.id }),
     ]);
 
     setMoradores(morRes.data || []);
     setChamadosDetail(chamRes.data || []);
     setOrcamentosDetail(orcRes.data || []);
 
-    // Build prestadores list from atribuido_para
-    const prestIds = [...new Set((atribRes.data || []).map((c: any) => c.atribuido_para))];
-    if (prestIds.length > 0) {
-      const [profRes, dispRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, phone').in('id', prestIds),
-        supabase.from('disponibilidade_prestador').select('*').in('prestador_id', prestIds),
-      ]);
-      const dispMap = new Map((dispRes.data || []).map((d: any) => [d.prestador_id, d]));
-      setPrestadores((profRes.data || []).map((p: any) => ({
-        ...p,
-        disponivel: dispMap.get(p.id)?.disponivel ?? null,
-        especialidades: dispMap.get(p.id)?.especialidades ?? [],
-      })));
-    } else {
-      setPrestadores([]);
-    }
+    // Filtra apenas os prestadores vinculados a este condomínio específico
+    const rows = (presRes.data || []) as any[];
+    setPrestadores(
+      rows
+        .filter(r => r.condominio_id === condoId)
+        .map(r => ({
+          id: r.prestador_id,
+          full_name: r.full_name,
+          phone: r.phone ?? null,
+          disponivel: r.disponivel ?? null,
+          especialidades: r.especialidades ?? [],
+        }))
+    );
+
     setDetailLoading(false);
-  }, []);
+  }, [profile?.id]);
 
   const handleSelectCondo = (condo: any) => {
     setSelectedCondo(condo);
