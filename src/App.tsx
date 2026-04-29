@@ -10,13 +10,13 @@ import AppLayout from "@/components/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import SindicoDashboard from "@/pages/sindico/SindicoDashboard";
 import SindicoChamados from "@/pages/sindico/SindicoChamados";
-import SindicoPlano from "@/pages/sindico/SindicoPlano";
-import SindicoRelatorios from "@/pages/sindico/SindicoRelatorios";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminChamados from "@/pages/admin/AdminChamados";
 import AdminTecnicos from "@/pages/admin/AdminTecnicos";
 import AdminPrestadores from "@/pages/admin/AdminPrestadores";
 import SindicoPrestadores from "@/pages/sindico/SindicoPrestadores";
+import SindicoOrcamentos from "@/pages/sindico/SindicoOrcamentos";
+import SindicoCondominios from "@/pages/sindico/SindicoCondominios";
 import AdminArquitetos from "@/pages/admin/AdminArquitetos";
 import AdminCondominios from "@/pages/admin/AdminCondominios";
 import AdminFinanceiro from "@/pages/admin/AdminFinanceiro";
@@ -54,9 +54,10 @@ const App = () => (
             <Route path="/sindico" element={<ProtectedRoute allowedRoles={['sindico']}><Navigate to="/sindico/dashboard" replace /></ProtectedRoute>} />
             <Route path="/sindico/dashboard" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoDashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/chamados" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoChamados /></AppLayout></ProtectedRoute>} />
-            <Route path="/sindico/plano" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoPlano /></AppLayout></ProtectedRoute>} />
-            <Route path="/sindico/relatorios" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoRelatorios /></AppLayout></ProtectedRoute>} />
-            <Route path="/sindico/orcamentos" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><OrcamentosPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/sindico/plano" element={<ProtectedRoute allowedRoles={['sindico']}><Navigate to="/sindico/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/sindico/relatorios" element={<ProtectedRoute allowedRoles={['sindico']}><Navigate to="/sindico/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/sindico/orcamentos" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoOrcamentos /></AppLayout></ProtectedRoute>} />
+            <Route path="/sindico/condominios" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoCondominios /></AppLayout></ProtectedRoute>} />
             <Route path="/sindico/tecnicos" element={<ProtectedRoute allowedRoles={['sindico']}><Navigate to="/sindico/prestadores" replace /></ProtectedRoute>} />
             <Route path="/sindico/prestadores" element={<ProtectedRoute allowedRoles={['sindico']}><AppLayout><SindicoPrestadores /></AppLayout></ProtectedRoute>} />
 

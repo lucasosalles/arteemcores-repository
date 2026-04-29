@@ -16,12 +16,11 @@ interface NavItem {
 }
 
 const sindicoNav: NavItem[] = [
-  { label: 'Dashboard',   path: '/sindico/dashboard',  icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Chamados',    path: '/sindico/chamados',   icon: <ClipboardList className="w-5 h-5" /> },
-  { label: 'Orçamentos',  path: '/sindico/orcamentos', icon: <FileText className="w-5 h-5" /> },
-  { label: 'Prestadores', path: '/sindico/prestadores', icon: <Users className="w-5 h-5" /> },
-  { label: 'Relatórios',  path: '/sindico/relatorios', icon: <BarChart3 className="w-5 h-5" /> },
-  { label: 'Meu Plano',   path: '/sindico/plano',      icon: <Star className="w-5 h-5" /> },
+  { label: 'Dashboard',    path: '/sindico/dashboard',    icon: <LayoutDashboard className="w-5 h-5" /> },
+  { label: 'Chamados',     path: '/sindico/chamados',     icon: <ClipboardList className="w-5 h-5" /> },
+  { label: 'Orçamentos',   path: '/sindico/orcamentos',   icon: <FileText className="w-5 h-5" /> },
+  { label: 'Condomínios',  path: '/sindico/condominios',  icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Prestadores',  path: '/sindico/prestadores',  icon: <Users className="w-5 h-5" /> },
 ];
 
 const moradorNav: NavItem[] = [
