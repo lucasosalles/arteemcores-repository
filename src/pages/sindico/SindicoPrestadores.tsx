@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle2, XCircle, Users, Plus, Pencil, Trash2, Search, X, List } from 'lucide-react';
+import { CheckCircle2, XCircle, Users, Plus, Pencil, Search, X, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const ESPECIALIDADE_LABEL: Record<string, string> = {
@@ -61,10 +61,8 @@ export default function SindicoPrestadores() {
   const [editPrestador, setEditPrestador] = useState<Prestador | null>(null);
   const [editCondoIds, setEditCondoIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-
-  // Modal — Remover confirmação
-  const [removeTarget, setRemoveTarget] = useState<{ prestador: Prestador; condoId: string } | null>(null);
-  const [removing, setRemoving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState(false);
 
   // ── Carrega dados principais ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -245,6 +243,8 @@ export default function SindicoPrestadores() {
   const handleEditOpen = (p: Prestador) => {
     setEditPrestador(p);
     setEditCondoIds([...p.condominioIds]);
+    setEditError('');
+    setEditSuccess(false);
   };
 
   const toggleEditCondo = (condoId: string) => {
@@ -256,44 +256,40 @@ export default function SindicoPrestadores() {
   const handleEditSave = async () => {
     if (!editPrestador) return;
     setSaving(true);
+    setEditError('');
+    setEditSuccess(false);
 
     const toAdd = editCondoIds.filter(id => !editPrestador.condominioIds.includes(id));
     const toRemove = editPrestador.condominioIds.filter(id => !editCondoIds.includes(id));
 
-    // Usa RPCs para garantir execução correta
-    const addOps = toAdd.map(condoId =>
-      supabase.rpc('link_prestador_to_condo', {
-        p_prestador_id: editPrestador.id,
-        p_condominio_id: condoId,
-      })
-    );
-    const removeOps = toRemove.map(condoId =>
-      supabase.rpc('unlink_prestador_from_condo', {
-        p_prestador_id: editPrestador.id,
-        p_condominio_id: condoId,
-      })
-    );
+    const results = await Promise.all([
+      ...toAdd.map(condoId =>
+        supabase.rpc('link_prestador_to_condo', {
+          p_prestador_id: editPrestador.id,
+          p_condominio_id: condoId,
+        })
+      ),
+      ...toRemove.map(condoId =>
+        supabase.rpc('unlink_prestador_from_condo', {
+          p_prestador_id: editPrestador.id,
+          p_condominio_id: condoId,
+        })
+      ),
+    ]);
 
-    await Promise.all([...addOps, ...removeOps]);
+    const errors = results.map(r => r.error).filter(Boolean);
     setSaving(false);
-    setEditPrestador(null);
+
+    if (errors.length > 0) {
+      console.error('[SindicoPrestadores] handleEditSave errors:', errors);
+      setEditError(`Erro ao salvar: ${errors[0]!.message}`);
+      return;
+    }
+
+    setEditSuccess(true);
     fetchAll();
-  };
-
-  // ── Remover vínculo (via RPC SECURITY DEFINER) ───────────────────────
-  const handleRemove = async () => {
-    if (!removeTarget) return;
-    setRemoving(true);
-
-    const { error } = await supabase.rpc('unlink_prestador_from_condo', {
-      p_prestador_id: removeTarget.prestador.id,
-      p_condominio_id: removeTarget.condoId,
-    });
-
-    if (error) console.error('unlink error:', error);
-    setRemoving(false);
-    setRemoveTarget(null);
-    fetchAll();
+    // Fecha modal após breve feedback de sucesso
+    setTimeout(() => setEditPrestador(null), 1200);
   };
 
   const condoName = (id: string) => condos.find(c => c.id === id)?.name ?? id;
@@ -439,21 +435,13 @@ export default function SindicoPrestadores() {
                         ))}
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEditOpen(p)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-muted/70 text-foreground transition-colors"
-                        >
-                          <Pencil className="w-3 h-3" /> Editar acesso
-                        </button>
-                        <button
-                          onClick={() => setRemoveTarget({ prestador: p, condoId: p.condominioIds[0] ?? '' })}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
-                        >
-                          <Trash2 className="w-3 h-3" /> Remover
-                        </button>
-                      </div>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => handleEditOpen(p)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-muted hover:bg-muted/70 text-foreground transition-colors ml-auto"
+                      >
+                        <Pencil className="w-3 h-3" /> Editar acesso
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -592,13 +580,14 @@ export default function SindicoPrestadores() {
           <div className="bg-card rounded-2xl w-full max-w-sm p-6 space-y-4 border border-border shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground">Editar acesso</h2>
-              <button onClick={() => setEditPrestador(null)}>
+              <button onClick={() => setEditPrestador(null)} disabled={saving}>
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
             <p className="text-sm text-muted-foreground">
               Selecione os condomínios que{' '}
-              <span className="text-foreground font-semibold">{editPrestador.full_name}</span> atenderá:
+              <span className="text-foreground font-semibold">{editPrestador.full_name}</span> atenderá.
+              Desmarcar todos remove o prestador da lista.
             </p>
             <div className="space-y-2">
               {condos.map(c => (
@@ -613,9 +602,23 @@ export default function SindicoPrestadores() {
                 </label>
               ))}
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setEditPrestador(null)}>Cancelar</Button>
-              <Button variant="golden" size="sm" onClick={handleEditSave} disabled={saving || editCondoIds.length === 0}>
+
+            {editError && (
+              <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                {editError}
+              </p>
+            )}
+            {editSuccess && (
+              <p className="text-sm text-success bg-success/10 border border-success/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> Acesso atualizado com sucesso.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={() => setEditPrestador(null)} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button variant="golden" size="sm" onClick={handleEditSave} disabled={saving}>
                 {saving ? 'Salvando...' : 'Salvar'}
               </Button>
             </div>
@@ -623,49 +626,6 @@ export default function SindicoPrestadores() {
         </div>
       )}
 
-      {/* ─── Modal Remover confirmação ─── */}
-      {removeTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card rounded-2xl w-full max-w-sm p-6 space-y-4 border border-border shadow-xl">
-            <h2 className="text-lg font-bold text-foreground">Remover prestador</h2>
-            {removeTarget.prestador.condominioIds.length > 1 ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  <span className="text-foreground font-semibold">{removeTarget.prestador.full_name}</span>{' '}
-                  está vinculado a {removeTarget.prestador.condominioIds.length} condomínios. Selecione de qual deseja remover:
-                </p>
-                <select
-                  value={removeTarget.condoId}
-                  onChange={e => setRemoveTarget({ ...removeTarget, condoId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground"
-                >
-                  {removeTarget.prestador.condominioIds.map(cid => (
-                    <option key={cid} value={cid}>{condoName(cid)}</option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Deseja desvincular{' '}
-                <span className="text-foreground font-semibold">{removeTarget.prestador.full_name}</span>{' '}
-                do condomínio{' '}
-                <span className="text-foreground font-semibold">{condoName(removeTarget.condoId)}</span>?
-              </p>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setRemoveTarget(null)}>Cancelar</Button>
-              <Button
-                size="sm"
-                className="bg-destructive hover:bg-destructive/90 text-white"
-                onClick={handleRemove}
-                disabled={removing || !removeTarget.condoId}
-              >
-                {removing ? 'Removendo...' : 'Remover'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
