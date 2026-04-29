@@ -118,29 +118,20 @@ export default function SindicoPrestadores() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Busca de prestadores no sistema por nome ou email
+  // Busca de prestadores via RPC — acessa auth.users para filtrar por email
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     setSearchResults([]);
     setSelectedResult(null);
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, phone')
-      .or(`full_name.ilike.%${searchQuery.trim()}%,email.ilike.%${searchQuery.trim()}%`)
-      .limit(10);
+    const { data, error } = await supabase.rpc('search_prestadores', {
+      search_term: searchQuery.trim(),
+      exclude_condo_id: addCondoId || null,
+    });
 
-    // Filtra apenas prestadores (via user_roles)
-    const ids = (data || []).map((p: any) => p.id);
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'prestador')
-      .in('user_id', ids);
-
-    const prestadorRoleIds = new Set((roles || []).map((r: any) => r.user_id));
-    setSearchResults((data || []).filter((p: any) => prestadorRoleIds.has(p.id)));
+    if (error) console.error('search_prestadores error:', error);
+    setSearchResults((data as SearchResult[]) || []);
     setSearching(false);
   };
 
