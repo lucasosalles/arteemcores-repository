@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle2, XCircle, Users, Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { CheckCircle2, XCircle, Users, Plus, Pencil, Trash2, Search, X, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const ESPECIALIDADE_LABEL: Record<string, string> = {
@@ -17,7 +17,6 @@ interface Condo { id: string; name: string; }
 interface Prestador {
   id: string;
   full_name: string;
-  email?: string | null;
   phone: string | null;
   disponivel: boolean | null;
   especialidades: string[] | null;
@@ -28,8 +27,8 @@ interface Prestador {
 interface SearchResult {
   id: string;
   full_name: string;
-  email?: string | null;
-  phone?: string | null;
+  email: string | null;
+  phone: string | null;
 }
 
 export default function SindicoPrestadores() {
@@ -44,11 +43,17 @@ export default function SindicoPrestadores() {
 
   // Modal — Adicionar Prestador
   const [showAdd, setShowAdd] = useState(false);
+  const [addCondoId, setAddCondoId] = useState('');
+  const [addTab, setAddTab] = useState<'busca' | 'base'>('busca');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+
+  const [baseList, setBaseList] = useState<SearchResult[]>([]);
+  const [loadingBase, setLoadingBase] = useState(false);
+
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
-  const [addCondoId, setAddCondoId] = useState('');
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
 
@@ -61,6 +66,7 @@ export default function SindicoPrestadores() {
   const [removeTarget, setRemoveTarget] = useState<{ prestador: Prestador; condoId: string } | null>(null);
   const [removing, setRemoving] = useState(false);
 
+  // ── Carrega dados principais ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     if (!profile?.id) return;
     setLoading(true);
@@ -75,7 +81,6 @@ export default function SindicoPrestadores() {
 
     const condoIds = condosData.map((c: Condo) => c.id);
 
-    // Busca vínculos da tabela prestador_condominios
     const { data: vinculos } = await supabase
       .from('prestador_condominios')
       .select('prestador_id, condominio_id')
@@ -85,10 +90,15 @@ export default function SindicoPrestadores() {
 
     const prestadorIds = [...new Set(vinculos.map((v: any) => v.prestador_id))];
 
+    // profiles NÃO tem coluna email — omitir da seleção
     const [profilesRes, dispRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, phone').in('id', prestadorIds),
-      supabase.from('disponibilidade_prestador').select('prestador_id, disponivel, especialidades, tempo_medio_execucao_dias').in('prestador_id', prestadorIds),
+      supabase.from('profiles').select('id, full_name, phone').in('id', prestadorIds),
+      supabase.from('disponibilidade_prestador')
+        .select('prestador_id, disponivel, especialidades, tempo_medio_execucao_dias')
+        .in('prestador_id', prestadorIds),
     ]);
+
+    if (profilesRes.error) { console.error('fetchAll profiles error:', profilesRes.error); }
 
     const dispMap = new Map((dispRes.data || []).map((d: any) => [d.prestador_id, d]));
 
@@ -98,7 +108,6 @@ export default function SindicoPrestadores() {
       return {
         id: p.id,
         full_name: p.full_name,
-        email: p.email,
         phone: p.phone,
         disponivel: disp?.disponivel ?? null,
         especialidades: disp?.especialidades ?? null,
@@ -118,7 +127,28 @@ export default function SindicoPrestadores() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Busca de prestadores via RPC — acessa auth.users para filtrar por email
+  // ── Abre modal com estado limpo ───────────────────────────────────────
+  const openAddModal = () => {
+    setShowAdd(true);
+    setAddCondoId(condos[0]?.id ?? '');
+    setAddTab('busca');
+    setSearchQuery('');
+    setSearchResults([]);
+    setBaseList([]);
+    setSelectedResult(null);
+    setAddError('');
+  };
+
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setBaseList([]);
+    setSelectedResult(null);
+    setAddError('');
+  };
+
+  // ── Busca por nome/email (RPC) ────────────────────────────────────────
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
@@ -130,35 +160,72 @@ export default function SindicoPrestadores() {
       exclude_condo_id: addCondoId || null,
     });
 
-    if (error) console.error('search_prestadores error:', error);
-    setSearchResults((data as SearchResult[]) || []);
+    if (error) {
+      console.error('search_prestadores error:', error);
+      setSearchResults([]);
+    } else {
+      setSearchResults((data as SearchResult[]) || []);
+    }
     setSearching(false);
   };
 
+  // ── Carrega aba "Selecionar da base" ─────────────────────────────────
+  const loadBase = useCallback(async (condoId: string) => {
+    setLoadingBase(true);
+    setBaseList([]);
+    setSelectedResult(null);
+
+    const { data, error } = await supabase.rpc('search_prestadores', {
+      search_term: '',
+      exclude_condo_id: condoId || null,
+    });
+
+    if (error) console.error('loadBase error:', error);
+    setBaseList((data as SearchResult[]) || []);
+    setLoadingBase(false);
+  }, []);
+
+  const handleTabChange = (tab: 'busca' | 'base') => {
+    setAddTab(tab);
+    setSelectedResult(null);
+    if (tab === 'base') loadBase(addCondoId);
+  };
+
+  // Quando muda o condo-alvo, recarrega a aba base se estiver aberta
+  const handleCondoChange = (condoId: string) => {
+    setAddCondoId(condoId);
+    setSelectedResult(null);
+    setSearchResults([]);
+    if (addTab === 'base') loadBase(condoId);
+  };
+
+  // ── Vincular prestador (via RPC SECURITY DEFINER) ────────────────────
   const handleAdd = async () => {
     if (!selectedResult || !addCondoId) return;
     setAdding(true);
     setAddError('');
 
-    const { error } = await supabase
-      .from('prestador_condominios')
-      .insert({ prestador_id: selectedResult.id, condominio_id: addCondoId });
+    const { error } = await supabase.rpc('link_prestador_to_condo', {
+      p_prestador_id: selectedResult.id,
+      p_condominio_id: addCondoId,
+    });
 
     if (error) {
-      setAddError(error.code === '23505' ? 'Prestador já vinculado a este condomínio.' : error.message);
+      setAddError(
+        error.message.includes('não é o síndico')
+          ? 'Sem permissão: você não é o síndico deste condomínio.'
+          : `Erro ao vincular: ${error.message}`
+      );
       setAdding(false);
       return;
     }
 
-    setShowAdd(false);
-    setSearchQuery('');
-    setSearchResults([]);
-    setSelectedResult(null);
-    setAddCondoId('');
+    closeAddModal();
     setAdding(false);
     fetchAll();
   };
 
+  // ── Editar acesso (quais condos o prestador atende) ───────────────────
   const handleEditOpen = (p: Prestador) => {
     setEditPrestador(p);
     setEditCondoIds([...p.condominioIds]);
@@ -177,35 +244,37 @@ export default function SindicoPrestadores() {
     const toAdd = editCondoIds.filter(id => !editPrestador.condominioIds.includes(id));
     const toRemove = editPrestador.condominioIds.filter(id => !editCondoIds.includes(id));
 
-    const ops: Promise<any>[] = [];
+    // Usa RPCs para garantir execução correta
+    const addOps = toAdd.map(condoId =>
+      supabase.rpc('link_prestador_to_condo', {
+        p_prestador_id: editPrestador.id,
+        p_condominio_id: condoId,
+      })
+    );
+    const removeOps = toRemove.map(condoId =>
+      supabase.rpc('unlink_prestador_from_condo', {
+        p_prestador_id: editPrestador.id,
+        p_condominio_id: condoId,
+      })
+    );
 
-    if (toAdd.length > 0) {
-      ops.push(supabase.from('prestador_condominios').insert(
-        toAdd.map(condoId => ({ prestador_id: editPrestador.id, condominio_id: condoId }))
-      ));
-    }
-
-    if (toRemove.length > 0) {
-      ops.push(supabase.from('prestador_condominios')
-        .delete()
-        .eq('prestador_id', editPrestador.id)
-        .in('condominio_id', toRemove));
-    }
-
-    await Promise.all(ops);
+    await Promise.all([...addOps, ...removeOps]);
     setSaving(false);
     setEditPrestador(null);
     fetchAll();
   };
 
+  // ── Remover vínculo (via RPC SECURITY DEFINER) ───────────────────────
   const handleRemove = async () => {
     if (!removeTarget) return;
     setRemoving(true);
-    await supabase
-      .from('prestador_condominios')
-      .delete()
-      .eq('prestador_id', removeTarget.prestador.id)
-      .eq('condominio_id', removeTarget.condoId);
+
+    const { error } = await supabase.rpc('unlink_prestador_from_condo', {
+      p_prestador_id: removeTarget.prestador.id,
+      p_condominio_id: removeTarget.condoId,
+    });
+
+    if (error) console.error('unlink error:', error);
     setRemoving(false);
     setRemoveTarget(null);
     fetchAll();
@@ -220,6 +289,27 @@ export default function SindicoPrestadores() {
     return true;
   });
 
+  // Componente de resultado reutilizável
+  const ResultItem = ({ r }: { r: SearchResult }) => (
+    <button
+      key={r.id}
+      onClick={() => setSelectedResult(r)}
+      className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between gap-2 ${
+        selectedResult?.id === r.id
+          ? 'gradient-primary text-foreground shadow-md'
+          : 'bg-muted hover:bg-muted/70 text-foreground'
+      }`}
+    >
+      <div>
+        <p className="font-semibold">{r.full_name}</p>
+        {r.email && <p className="text-xs opacity-60">{r.email}</p>}
+      </div>
+      {selectedResult?.id === r.id && (
+        <CheckCircle2 className="w-4 h-4 shrink-0 text-success" />
+      )}
+    </button>
+  );
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       {/* Header */}
@@ -228,7 +318,7 @@ export default function SindicoPrestadores() {
           <h1 className="text-2xl font-bold text-foreground">Prestadores</h1>
           <p className="text-muted-foreground">Prestadores vinculados ao seu condomínio</p>
         </div>
-        <Button variant="golden" size="sm" onClick={() => { setShowAdd(true); setAddCondoId(condos[0]?.id ?? ''); }}>
+        <Button variant="golden" size="sm" onClick={openAddModal}>
           <Plus className="w-4 h-4 mr-1" /> Adicionar Prestador
         </Button>
       </div>
@@ -268,9 +358,13 @@ export default function SindicoPrestadores() {
       ) : filtered.length === 0 ? (
         <div className="glass-card p-12 text-center text-muted-foreground">
           <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          <p className="mb-4">{prestadores.length === 0 ? 'Nenhum prestador vinculado ainda.' : 'Nenhum prestador encontrado para os filtros selecionados.'}</p>
+          <p className="mb-4">
+            {prestadores.length === 0
+              ? 'Nenhum prestador vinculado ainda.'
+              : 'Nenhum prestador encontrado para os filtros selecionados.'}
+          </p>
           {prestadores.length === 0 && (
-            <Button variant="golden" size="sm" onClick={() => { setShowAdd(true); setAddCondoId(condos[0]?.id ?? ''); }}>
+            <Button variant="golden" size="sm" onClick={openAddModal}>
               <Plus className="w-4 h-4 mr-1" /> Adicionar primeiro prestador
             </Button>
           )}
@@ -357,62 +451,21 @@ export default function SindicoPrestadores() {
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card rounded-2xl w-full max-w-md p-6 space-y-4 border border-border shadow-xl">
+            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground">Adicionar Prestador</h2>
-              <button onClick={() => { setShowAdd(false); setSearchQuery(''); setSearchResults([]); setSelectedResult(null); setAddError(''); }}>
+              <button onClick={closeAddModal}>
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
-            {/* Busca */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Buscar por nome ou email</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  placeholder="Ex: João ou joao@email.com"
-                  className="flex-1 px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground"
-                />
-                <Button variant="outline" size="sm" onClick={handleSearch} disabled={searching}>
-                  <Search className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Resultados */}
-            {searching && <p className="text-sm text-muted-foreground">Buscando...</p>}
-            {!searching && searchResults.length > 0 && (
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {searchResults.map(r => (
-                  <button
-                    key={r.id}
-                    onClick={() => setSelectedResult(r)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedResult?.id === r.id
-                        ? 'gradient-primary text-foreground'
-                        : 'bg-muted hover:bg-muted/70 text-foreground'
-                    }`}
-                  >
-                    <p className="font-semibold">{r.full_name}</p>
-                    {r.email && <p className="text-xs opacity-70">{r.email}</p>}
-                  </button>
-                ))}
-              </div>
-            )}
-            {!searching && searchQuery && searchResults.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum prestador encontrado.</p>
-            )}
-
-            {/* Seleção do condomínio (se houver mais de um) */}
+            {/* Seletor de condomínio (apenas se houver >1) */}
             {condos.length > 1 && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">Vincular ao condomínio</label>
                 <select
                   value={addCondoId}
-                  onChange={e => setAddCondoId(e.target.value)}
+                  onChange={e => handleCondoChange(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground"
                 >
                   {condos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -420,13 +473,96 @@ export default function SindicoPrestadores() {
               </div>
             )}
 
-            {addError && <p className="text-sm text-destructive">{addError}</p>}
+            {/* Abas */}
+            <div className="flex rounded-xl bg-muted p-1 gap-1">
+              <button
+                onClick={() => handleTabChange('busca')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  addTab === 'busca' ? 'gradient-primary text-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" /> Buscar por nome/email
+              </button>
+              <button
+                onClick={() => handleTabChange('base')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  addTab === 'base' ? 'gradient-primary text-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" /> Selecionar da base
+              </button>
+            </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => { setShowAdd(false); setSearchQuery(''); setSearchResults([]); setSelectedResult(null); setAddError(''); }}>
-                Cancelar
-              </Button>
-              <Button variant="golden" size="sm" onClick={handleAdd} disabled={!selectedResult || !addCondoId || adding}>
+            {/* Aba Busca */}
+            {addTab === 'busca' && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    placeholder="Ex: João ou joao@email.com"
+                    className="flex-1 px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground"
+                  />
+                  <Button variant="outline" size="sm" onClick={handleSearch} disabled={searching || !searchQuery.trim()}>
+                    <Search className="w-4 h-4" />
+                  </Button>
+                </div>
+                {searching && <p className="text-sm text-muted-foreground">Buscando...</p>}
+                {!searching && searchResults.length > 0 && (
+                  <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+                    {searchResults.map(r => <ResultItem key={r.id} r={r} />)}
+                  </div>
+                )}
+                {!searching && searchQuery && searchResults.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhum prestador encontrado.</p>
+                )}
+              </div>
+            )}
+
+            {/* Aba Base */}
+            {addTab === 'base' && (
+              <div>
+                {loadingBase ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />)}
+                  </div>
+                ) : baseList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum prestador disponível para vincular.
+                  </p>
+                ) : (
+                  <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+                    {baseList.map(r => <ResultItem key={r.id} r={r} />)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Prestador selecionado */}
+            {selectedResult && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                <span className="text-foreground font-medium">{selectedResult.full_name}</span>
+                <span className="text-muted-foreground text-xs">selecionado</span>
+              </div>
+            )}
+
+            {addError && (
+              <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                {addError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={closeAddModal}>Cancelar</Button>
+              <Button
+                variant="golden"
+                size="sm"
+                onClick={handleAdd}
+                disabled={!selectedResult || !addCondoId || adding}
+              >
                 {adding ? 'Vinculando...' : 'Vincular'}
               </Button>
             </div>
@@ -444,7 +580,10 @@ export default function SindicoPrestadores() {
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
-            <p className="text-sm text-muted-foreground">Selecione os condomínios que <span className="text-foreground font-semibold">{editPrestador.full_name}</span> atenderá:</p>
+            <p className="text-sm text-muted-foreground">
+              Selecione os condomínios que{' '}
+              <span className="text-foreground font-semibold">{editPrestador.full_name}</span> atenderá:
+            </p>
             <div className="space-y-2">
               {condos.map(c => (
                 <label key={c.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted cursor-pointer hover:bg-muted/70 transition-colors">
@@ -476,7 +615,8 @@ export default function SindicoPrestadores() {
             {removeTarget.prestador.condominioIds.length > 1 ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  <span className="text-foreground font-semibold">{removeTarget.prestador.full_name}</span> está vinculado a {removeTarget.prestador.condominioIds.length} condomínios. Selecione de qual deseja remover:
+                  <span className="text-foreground font-semibold">{removeTarget.prestador.full_name}</span>{' '}
+                  está vinculado a {removeTarget.prestador.condominioIds.length} condomínios. Selecione de qual deseja remover:
                 </p>
                 <select
                   value={removeTarget.condoId}
@@ -490,7 +630,10 @@ export default function SindicoPrestadores() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Deseja desvincular <span className="text-foreground font-semibold">{removeTarget.prestador.full_name}</span> do condomínio <span className="text-foreground font-semibold">{condoName(removeTarget.condoId)}</span>?
+                Deseja desvincular{' '}
+                <span className="text-foreground font-semibold">{removeTarget.prestador.full_name}</span>{' '}
+                do condomínio{' '}
+                <span className="text-foreground font-semibold">{condoName(removeTarget.condoId)}</span>?
               </p>
             )}
             <div className="flex justify-end gap-2 pt-2">
