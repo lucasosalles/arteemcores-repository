@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, clearAuthStorage } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { purgeSupabaseStorage } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,7 +153,7 @@ const LoginPage: React.FC = () => {
             <button
               type="button"
               className="text-xs text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-2 transition-colors"
-              onClick={() => { clearAuthStorage(); window.location.reload(); }}
+              onClick={() => { purgeSupabaseStorage(); window.location.reload(); }}
             >
               Problemas para entrar? Clique aqui
             </button>

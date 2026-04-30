@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, purgeSupabaseStorage } from '@/integrations/supabase/client';
 
 type AppRole = 'admin' | 'sindico' | 'morador' | 'arquiteto' | 'prestador' | 'tecnico';
 
@@ -136,9 +136,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err: any) {
         // Any init error (session_timeout, refresh_token_not_found, invalid_refresh_token, etc.)
-        // means the stored session is unusable — wipe it immediately without attempting renewal.
-        console.warn('Auth init error, forcing reset:', err?.message ?? err);
-        forceReset();
+        // means the stored session is unusable. Purge storage and do a hard redirect so the
+        // SDK reinitializes from a clean slate — forceReset() alone is not enough because the
+        // SDK instance in memory may still hold the corrupted state.
+        console.warn('Auth init error, purging and redirecting:', err?.message ?? err);
+        purgeSupabaseStorage();
+        window.location.href = '/login';
       } finally {
         clearTimeout(safetyTimer);
       }
