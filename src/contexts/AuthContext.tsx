@@ -24,37 +24,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PROJECT_REF = 'nwrpcxmkcjvpemgtdmfd';
-const SUPABASE_AUTH_KEYS = [
-  `sb-${PROJECT_REF}-auth-token`,
-  `sb-${PROJECT_REF}-auth-token-code-verifier`,
-];
-
-export const clearAuthStorage = () => {
-  // Remove known Supabase keys explicitly first
-  SUPABASE_AUTH_KEYS.forEach(k => {
-    try { localStorage.removeItem(k); } catch {}
-    try { sessionStorage.removeItem(k); } catch {}
-  });
-  // Then sweep any remaining supabase/auth keys
-  Object.keys(localStorage)
-    .filter(k => k.includes('supabase') || k.includes('auth') || k.startsWith('sb-'))
-    .forEach(k => localStorage.removeItem(k));
-  try { sessionStorage.clear(); } catch {}
-};
+// Delegates to purgeSupabaseStorage (sessionStorage-first) for all auth cleanup.
+// Kept as a named export for components that call it directly.
+export const clearAuthStorage = () => purgeSupabaseStorage();
 
 const clearIfExpiredSession = () => {
   try {
-    const key = Object.keys(localStorage).find(
-      k => k.startsWith('sb-') && k.endsWith('-auth-token')
-    );
+    // Auth tokens are now stored in sessionStorage
+    const key = [...Array(sessionStorage.length)].map((_, i) => sessionStorage.key(i))
+      .find(k => k?.startsWith('sb-') && k.endsWith('-auth-token'));
     if (!key) return;
-    const stored = JSON.parse(localStorage.getItem(key) || 'null');
+    const stored = JSON.parse(sessionStorage.getItem(key) || 'null');
     if (stored?.expires_at && Date.now() / 1000 > stored.expires_at) {
-      clearAuthStorage();
+      purgeSupabaseStorage();
     }
   } catch {
-    clearAuthStorage();
+    purgeSupabaseStorage();
   }
 };
 
@@ -205,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
-    clearAuthStorage();
+    purgeSupabaseStorage();
     setSession(null);
     setUser(null);
     setProfile(null);
